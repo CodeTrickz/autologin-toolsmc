@@ -72,8 +72,8 @@ De tool ondersteunt automatische login voor de volgende services:
 
 ### Stap 1: Download en Extract
 
-1. Download of clone de scripts directory
-2. Open een terminal/command prompt in de scripts directory
+1. Download of clone de repository
+2. Open een terminal/command prompt in de project root directory
 
 ### Stap 2: Installeer Dependencies
 
@@ -94,7 +94,7 @@ Dit installeert:
 Voor distributie als standalone Windows applicatie:
 
 ```bash
-build_exe.bat
+scripts\build_exe.bat
 ```
 
 Dit maakt een `SintMaartenCampusAutologin.exe` bestand in de `dist` folder.
@@ -102,14 +102,14 @@ Dit maakt een `SintMaartenCampusAutologin.exe` bestand in de `dist` folder.
 Voor een complete release package:
 
 ```bash
-package_release.bat
+scripts\package_release.bat
 ```
 
 Dit maakt een `release` folder met alle benodigde bestanden.
 
 ### Stap 3: Installatie op Windows Device
 
-Zie `INSTALLATIE.md` voor gedetailleerde installatie-instructies.
+Zie `docs/INSTALLATIE.md` voor gedetailleerde installatie-instructies.
 
 **Kort overzicht:**
 1. Kopieer de `dist\SintMaartenCampusAutologin` folder naar je computer
@@ -448,12 +448,12 @@ Alle user input wordt gevalideerd en gesanitized:
 **Oplossingen:**
 1. De key wordt automatisch aangemaakt bij eerste gebruik
 2. Controleer bestandspermissies
-3. Voer `python migrate_key_file.py` uit als migratie nodig is
+3. Voer `python src/core/migrate_key_file.py` uit als migratie nodig is
 
 ### Probleem: Security test faalt
 
 **Oplossingen:**
-1. Voer `python security_test.py` uit om problemen te identificeren
+1. Voer `python src/core/security_test.py` uit om problemen te identificeren
 2. Of gebruik de Utilities pagina in de web interface om de security test uit te voeren
 3. Controleer of alle bestanden correct zijn geconfigureerd
 4. Controleer bestandspermissies
@@ -497,7 +497,7 @@ Alle user input wordt gevalideerd en gesanitized:
 
 3. **Voer regelmatig security tests uit:**
    - Via web interface: Ga naar "Utilities" → "Security Test"
-   - Of via command line: `python security_test.py`
+   - Of via command line: `python src/core/security_test.py`
 
 3. **Gebruik master password voor extra beveiliging:**
    ```bash
@@ -517,7 +517,7 @@ Alle user input wordt gevalideerd en gesanitized:
 
 Voor vragen of problemen:
 1. Controleer deze documentatie
-2. Voer `python security_test.py` uit om beveiligingsproblemen te identificeren
+2. Voer `python src/core/security_test.py` uit om beveiligingsproblemen te identificeren
 3. Bekijk de terminal output voor error messages
 
 ## 📄 Licentie
