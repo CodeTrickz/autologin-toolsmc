@@ -247,6 +247,7 @@ De web interface bevat een Utilities pagina waar je verschillende onderhoudstake
 
 De web interface bevat een ingebouwde documentatie pagina die automatisch de `README.md` leest en weergeeft:
 
+- **Inhoudsopgave:** Navigatiebalk (sidebar) met inhoudsopgave naast de tekst; klik om naar een sectie te springen
 - **Automatische updates:** Wanneer je `README.md` aanpast, wordt de documentatie automatisch bijgewerkt in de web interface
 - **Markdown ondersteuning:** Volledige markdown syntax wordt ondersteund
 - **Toegankelijk:** Documentatie is altijd beschikbaar via het menu
@@ -366,8 +367,11 @@ Alle user input wordt gevalideerd en gesanitized:
    - Decryptie fouten worden stil afgehandeld
 
 4. **Security Test Script**
-   - `security_test.py` controleert automatisch op beveiligingsproblemen
-   - Voer regelmatig uit: `python security_test.py`
+   - `src/core/security_test.py` controleert encryptie, bestandspermissies, key file, web security en gevoelige data
+   - Via de app: **Utilities** → **SECURITY TEST**
+   - Via command line: `python -c "import sys; sys.path.insert(0,'.'); from src.core.security_test import SecurityTest; t=SecurityTest(); t.run_all_tests(); t.print_results()"`
+   - **Productie:** Zet `FLASK_SECRET_KEY` in .env om de waarschuwing over de default secret key weg te nemen
+   - Geen kritieke problemen = groen; waarschuwing (bijv. default Flask secret key) = in productie FLASK_SECRET_KEY zetten
 
 ### Bescherming Tegen Aanvallen
 
@@ -507,11 +511,15 @@ Deze tool is ontwikkeld voor intern gebruik bij Sint-Maarten Campus.
 
 ---
 
-**Versie:** 1.0.5  
+**Versie:** 1.0.6  
 **Laatste update:** Februari 2026  
 **Auteur:** Wesley Van Hoof
 
 ### Changelog
+
+#### Versie 1.0.6 (Februari 2026)
+- ✅ **Documentatie:** Nieuwe navigatiebalk met inhoudsopgave op de documentatiepagina (sticky sidebar, smooth scroll)
+- ✅ **Security:** Security test controleert op default Flask secret key; README tip voor FLASK_SECRET_KEY in productie
 
 #### Versie 1.0.5 (Februari 2026)
 - ✅ **Easy4U:** Auto-login overgezet naar Playwright voor betrouwbare invulling en klik op easy4u.nl

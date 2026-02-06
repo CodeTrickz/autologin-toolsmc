@@ -311,15 +311,16 @@ class SecurityTest:
         """Test 5: Controleer web interface beveiliging"""
         print("\n[TEST 5] Controleer web interface beveiliging...")
         
-        # Check of Flask secret key is ingesteld
+        # Check of Flask secret key is ingesteld (geen default in productie)
         try:
             from src.web.web_interface import app
-            if not app.secret_key or app.secret_key == "dev-secret-key":
+            default_keys = ("dev-secret-key", "dev-secret-key-change-in-production")
+            if not app.secret_key or (app.secret_key in default_keys):
                 self.add_issue(
                     "WARNING",
                     "Web Security",
                     "Flask secret key niet ingesteld of gebruikt default",
-                    "Zet een sterke secret key in productie: app.secret_key = 'your-secret-key'"
+                    "Zet FLASK_SECRET_KEY in .env of environment in productie"
                 )
             else:
                 self.add_pass("Web Security", "Flask secret key is ingesteld")
