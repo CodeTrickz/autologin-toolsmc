@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentatie</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #4a90a4 0%, #5fb3a8 50%, #7bc4a0 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .nav {
+            background: white;
+            border-radius: 15px;
+            padding: 15px 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .nav a {
+            padding: 10px 20px;
+            text-decoration: none;
+            color: #2d8659;
+            font-weight: bold;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .nav a:hover, .nav a.active {
+            background: linear-gradient(135deg, #2d8659 0%, #5fb3a8 100%);
+            color: white;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .section h2 {
+            color: #2d8659;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            border-bottom: 2px solid #2d8659;
+            padding-bottom: 10px;
+        }
+
+        .buttons-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-login {
+            background: linear-gradient(135deg, #2d8659 0%, #5fb3a8 100%);
+        }
+
+        .btn-login:hover {
+            background: linear-gradient(135deg, #5fb3a8 0%, #2d8659 100%);
+        }
+
+        .btn-rdp {
+            background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
+        }
+
+        .btn-rdp:hover {
+            background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+        }
+
+        .btn-add {
+            background: linear-gradient(135deg, #4a90a4 0%, #5fb3a8 100%);
+        }
+
+        .btn-add:hover {
+            background: linear-gradient(135deg, #5fb3a8 0%, #4a90a4 100%);
+        }
+
+        .btn-delete {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            padding: 8px 15px;
+            font-size: 0.85em;
+        }
+
+        .btn-delete:hover {
+            background: linear-gradient(135deg, #fee140 0%, #fa709a 100%);
+        }
+
+        .rdp-server, .ssh-server {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .rdp-server:hover, .ssh-server:hover {
+            border-color: #2d8659;
+            box-shadow: 0 3px 10px rgba(45, 134, 89, 0.2);
+        }
+
+        .rdp-server-info, .ssh-server-info {
+            flex: 1;
+        }
+
+        .rdp-server-name, .ssh-server-name {
+            font-weight: bold;
+            color: #333;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+        .rdp-server-details, .ssh-server-details {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .rdp-server-actions, .ssh-server-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            animation: slideDown 0.3s;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            color: #2d8659;
+            font-size: 1.5em;
+        }
+
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #2d8659;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+    
+<style>
+    .documentation-content {
+        max-width: 900px;
+        margin: 0 auto;
+        line-height: 1.8;
+        color: #333;
+    }
+    
+    .documentation-content h1 {
+        color: #2d8659;
+        font-size: 2em;
+        margin-top: 30px;
+        margin-bottom: 20px;
+        border-bottom: 3px solid #2d8659;
+        padding-bottom: 10px;
+    }
+    
+    .documentation-content h2 {
+        color: #2d8659;
+        font-size: 1.6em;
+        margin-top: 25px;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #2d8659;
+        padding-bottom: 8px;
+    }
+    
+    .documentation-content h3 {
+        color: #4a90a4;
+        font-size: 1.3em;
+        margin-top: 20px;
+        margin-bottom: 12px;
+    }
+    
+    .documentation-content h4 {
+        color: #5fb3a8;
+        font-size: 1.1em;
+        margin-top: 15px;
+        margin-bottom: 10px;
+    }
+    
+    .documentation-content p {
+        margin-bottom: 15px;
+        color: #666;
+    }
+    
+    .documentation-content ul, .documentation-content ol {
+        margin-left: 30px;
+        margin-bottom: 15px;
+        color: #666;
+    }
+    
+    .documentation-content li {
+        margin-bottom: 8px;
+    }
+    
+    .documentation-content code {
+        background: #e9ecef;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9em;
+    }
+    
+    .documentation-content pre {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        overflow-x: auto;
+        border-left: 4px solid #2d8659;
+        margin: 15px 0;
+    }
+    
+    .documentation-content pre code {
+        background: transparent;
+        padding: 0;
+    }
+    
+    .documentation-content blockquote {
+        border-left: 4px solid #ffc107;
+        padding-left: 15px;
+        margin-left: 0;
+        color: #666;
+        font-style: italic;
+    }
+    
+    .documentation-content table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 15px 0;
+    }
+    
+    .documentation-content table th,
+    .documentation-content table td {
+        border: 1px solid #ddd;
+        padding: 10px;
+        text-align: left;
+    }
+    
+    .documentation-content table th {
+        background: #2d8659;
+        color: white;
+        font-weight: bold;
+    }
+    
+    .documentation-content table tr:nth-child(even) {
+        background: #f8f9fa;
+    }
+    
+    .documentation-content a {
+        color: #2d8659;
+        text-decoration: none;
+    }
+    
+    .documentation-content a:hover {
+        text-decoration: underline;
+    }
+    
+    .documentation-content strong {
+        color: #2d8659;
+        font-weight: bold;
+    }
+    
+    .documentation-content hr {
+        border: none;
+        border-top: 2px solid #2d8659;
+        margin: 30px 0;
+    }
+</style>
+
+</head>
+<body>
+    <div class="container">
+        <h1>🏫 Sint Maarten Campus Autologin Tool</h1>
+        
+        <nav class="nav">
+            <a href="/" id="nav-home">🏠 Home</a>
+            <a href="/auto-login" id="nav-auto-login">🌐 Auto Login</a>
+            <a href="/credentials" id="nav-credentials">🔐 Credentials</a>
+            <a href="/remote-connections" id="nav-remote">🖥️ Remote Connections</a>
+            <a href="/utilities" id="nav-utilities">🔧 Utilities</a>
+            <a href="/documentation" id="nav-documentation">📚 Documentatie</a>
+        </nav>
+
+        
+<div class="section">
+    <h2>📚 Documentatie</h2>
+    
+    <div class="documentation-content">
+        
+            <h1>Sint Maarten Campus Autologin Tool</h1>
+<p>Een veilige, geautomatiseerde login tool voor het Sint Maarten Campus die automatisch kan inloggen op verschillende web services en remote connections kan beheren via een gebruiksvriendelijke web interface.</p>
+<h2>📋 Inhoudsopgave</h2>
+<ul>
+<li><a href="#overzicht">Overzicht</a></li>
+<li><a href="#functionaliteiten">Functionaliteiten</a></li>
+<li><a href="#installatie">Installatie</a></li>
+<li><a href="#configuratie">Configuratie</a></li>
+<li><a href="#gebruik">Gebruik</a></li>
+<li><a href="#utilities">Utilities</a></li>
+<li><a href="#documentatie">Documentatie</a></li>
+<li><a href="#beperkingen">Beperkingen</a></li>
+<li><a href="#beveiliging">Beveiliging</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+</ul>
+<h2>🎯 Overzicht</h2>
+<p>De Sint Maarten Campus Autologin Tool is een Python-gebaseerde applicatie die:</p>
+<ul>
+<li><strong>Automatische web logins</strong> uitvoert voor:</li>
+<li>Smartschool (via Microsoft SSO)</li>
+<li>Microsoft 365 Admin Center</li>
+<li>Google Workspace Admin Console</li>
+<li>
+<p>Easy4U</p>
+</li>
+<li>
+<p><strong>Remote connections</strong> beheert via een web interface:</p>
+</li>
+<li>RDP (Remote Desktop Protocol) servers</li>
+<li>
+<p>SSH servers</p>
+</li>
+<li>
+<p><strong>Veilige credential opslag</strong> met encryptie</p>
+</li>
+<li>
+<p><strong>Web interface</strong> voor eenvoudig beheer zonder command line kennis</p>
+</li>
+</ul>
+<h2>✨ Functionaliteiten</h2>
+<h3>Auto Login Services</h3>
+<p>De tool ondersteunt automatische login voor de volgende services:</p>
+<ol>
+<li><strong>Smartschool</strong> - Login via Microsoft SSO</li>
+<li><strong>Microsoft Admin</strong> - Directe login naar Microsoft 365 Admin Center</li>
+<li><strong>Google Admin</strong> - Login naar Google Workspace Admin Console (inclusief Microsoft SSO redirect handling)</li>
+<li><strong>Easy4U</strong> - Automatische login naar Easy4U platform</li>
+</ol>
+<p><strong>Belangrijk:</strong> Je kunt geen nieuwe auto-login services toevoegen via de web interface. Alleen de bovenstaande 4 services zijn ondersteund. Voor nieuwe services is code-aanpassing nodig.</p>
+<h3>Remote Connections</h3>
+<h4>RDP Servers</h4>
+<ul>
+<li>Voeg RDP servers toe met hostname/IP, gebruikersnaam en wachtwoord</li>
+<li>Start RDP verbindingen met één klik</li>
+<li>Wachtwoorden worden encrypted opgeslagen</li>
+<li>Automatische credential management via Windows <code>cmdkey</code></li>
+</ul>
+<h4>SSH Servers</h4>
+<ul>
+<li>Voeg SSH servers toe met hostname/IP, poort, gebruikersnaam</li>
+<li>Ondersteunt zowel wachtwoord- als key file authenticatie</li>
+<li>Start SSH verbindingen in een CMD prompt venster</li>
+<li>Gebruikt OpenSSH (standaard op Windows 10+) of PuTTY als fallback</li>
+<li>Automatische wachtwoord authenticatie met PuTTY (plink.exe) wanneer beschikbaar</li>
+</ul>
+<h2>📦 Installatie</h2>
+<h3>Vereisten</h3>
+<ul>
+<li><strong>Python 3.8 of hoger</strong></li>
+<li><strong>Windows 10/11</strong> (voor RDP functionaliteit)</li>
+<li><strong>Chrome browser</strong> (voor Selenium web automation)</li>
+<li><strong>Internet verbinding</strong></li>
+</ul>
+<h3>Stap 1: Download en Extract</h3>
+<ol>
+<li>Download of clone de scripts directory</li>
+<li>Open een terminal/command prompt in de scripts directory</li>
+</ol>
+<h3>Stap 2: Installeer Dependencies</h3>
+<pre><code class="language-bash">pip install -r requirements.txt
+</code></pre>
+<p>Dit installeert:<br />
+- <code>selenium</code> - Voor browser automation<br />
+- <code>python-dotenv</code> - Voor environment variables<br />
+- <code>flask</code> - Voor de web interface<br />
+- <code>cryptography</code> - Voor encryptie van credentials<br />
+- <code>markdown</code> - Voor documentatie weergave in web interface<br />
+- <code>pyinstaller</code> - Voor het maken van een Windows executable</p>
+<h3>Stap 2b: (Optioneel) Maak een Windows Executable</h3>
+<p>Voor distributie als standalone Windows applicatie:</p>
+<pre><code class="language-bash">build_exe.bat
+</code></pre>
+<p>Dit maakt een <code>SintMaartenCampusAutologin.exe</code> bestand in de <code>dist</code> folder.</p>
+<p>Voor een complete release package:</p>
+<pre><code class="language-bash">package_release.bat
+</code></pre>
+<p>Dit maakt een <code>release</code> folder met alle benodigde bestanden.<br />
+- <code>markdown</code> - Voor documentatie weergave in web interface</p>
+<h3>Stap 3: (Optioneel) Installeer PuTTY</h3>
+<p>Voor automatische SSH wachtwoord authenticatie (optioneel):<br />
+- Download PuTTY van https://www.putty.org/<br />
+- Installeer PuTTY (plink.exe wordt automatisch gedetecteerd)</p>
+<h2>⚙️ Configuratie</h2>
+<h3>Eerste Opstarten</h3>
+<ol>
+<li>
+<p><strong>Start de web interface:</strong><br />
+<code>bash
+   python web_interface.py</code></p>
+</li>
+<li>
+<p><strong>Open je browser:</strong></p>
+</li>
+<li>Ga naar: <code>http://127.0.0.1:5000</code></li>
+<li>
+<p>De web interface opent automatisch</p>
+</li>
+<li>
+<p><strong>Configureer credentials:</strong></p>
+</li>
+<li>Klik op "Credentials Beheer" in het menu</li>
+<li>Selecteer een service (bijv. Smartschool)</li>
+<li>Vul je e-mail en wachtwoord in</li>
+<li>Klik op "Opslaan"</li>
+</ol>
+<h3>Credentials Instellen</h3>
+<p>Voor elke auto-login service moet je de volgende gegevens invullen:</p>
+<h4>Smartschool</h4>
+<ul>
+<li><strong>E-mail:</strong> Je Microsoft e-mail adres</li>
+<li><strong>Wachtwoord:</strong> Je Microsoft wachtwoord</li>
+</ul>
+<h4>Microsoft Admin</h4>
+<ul>
+<li><strong>URL:</strong> Admin URL (standaard: <code>https://admin.microsoft.com</code>)</li>
+<li><strong>E-mail:</strong> Je admin e-mail adres</li>
+<li><strong>Wachtwoord:</strong> Je admin wachtwoord</li>
+</ul>
+<h4>Google Admin</h4>
+<ul>
+<li><strong>URL:</strong> Admin URL (standaard: <code>https://admin.google.com</code>)</li>
+<li><strong>E-mail:</strong> Je Google Workspace admin e-mail</li>
+<li><strong>Wachtwoord:</strong> Je Google wachtwoord (kan Microsoft SSO redirect vereisen)</li>
+</ul>
+<h4>Easy4U</h4>
+<ul>
+<li><strong>URL:</strong> Easy4U login URL (standaard: <code>https://my.easy4u.be/nl/login</code>)</li>
+<li><strong>E-mail:</strong> Je Easy4U e-mail adres</li>
+<li><strong>Wachtwoord:</strong> Je Easy4U wachtwoord</li>
+</ul>
+<h3>RDP Servers Toevoegen</h3>
+<ol>
+<li>Ga naar "Remote Connections" in het menu</li>
+<li>Klik op "➕ Server Toevoegen" onder RDP Servers</li>
+<li>Vul in:</li>
+<li><strong>Naam:</strong> Een beschrijvende naam (bijv. "File Server")</li>
+<li><strong>Host:</strong> IP adres of hostname (bijv. <code>192.168.1.100</code>)</li>
+<li><strong>Gebruikersnaam:</strong> (Optioneel) <code>DOMAIN\user</code> of <code>user@domain.com</code></li>
+<li><strong>Wachtwoord:</strong> (Optioneel) Wachtwoord voor automatische login</li>
+</ol>
+<h3>SSH Servers Toevoegen</h3>
+<ol>
+<li>Ga naar "Remote Connections" in het menu</li>
+<li>Klik op "➕ Server Toevoegen" onder SSH Servers</li>
+<li>Vul in:</li>
+<li><strong>Naam:</strong> Een beschrijvende naam (bijv. "Linux Server")</li>
+<li><strong>Host:</strong> IP adres of hostname (bijv. <code>192.168.1.100</code>)</li>
+<li><strong>Gebruikersnaam:</strong> (Optioneel) SSH gebruikersnaam</li>
+<li><strong>Poort:</strong> (Standaard: 22)</li>
+<li><strong>Private Key bestand:</strong> (Optioneel) Pad naar private key (bijv. <code>C:\Users\...\.ssh\id_rsa</code>)</li>
+<li><strong>Wachtwoord:</strong> (Optioneel) Wordt automatisch ingevuld met PuTTY (plink.exe), anders handmatig invoeren</li>
+</ol>
+<h2>🚀 Gebruik</h2>
+<h3>Auto Login Starten</h3>
+<ol>
+<li>Open de web interface (<code>http://127.0.0.1:5000</code>)</li>
+<li>Ga naar "Auto Login"</li>
+<li>Klik op de knop van de gewenste service</li>
+<li>Een Chrome browser venster opent automatisch en voert de login uit</li>
+<li><strong>Let op:</strong> Voor 2FA (twee-factor authenticatie) moet je handmatig de code invoeren</li>
+</ol>
+<h3>RDP Verbinding Starten</h3>
+<ol>
+<li>Ga naar "Remote Connections"</li>
+<li>Klik op "🔌 Verbinden" naast de gewenste RDP server</li>
+<li>Een Remote Desktop venster opent automatisch</li>
+</ol>
+<h3>SSH Verbinding Starten</h3>
+<ol>
+<li>Ga naar "Remote Connections"</li>
+<li>Klik op "🔌 Verbinden" naast de gewenste SSH server</li>
+<li>Een CMD prompt venster opent met de SSH verbinding</li>
+<li>Als er een wachtwoord is opgegeven en PuTTY is geïnstalleerd, wordt het automatisch ingevuld</li>
+<li>Anders moet je het wachtwoord handmatig invoeren</li>
+</ol>
+<h2>🔧 Utilities</h2>
+<p>De web interface bevat een Utilities pagina waar je verschillende onderhoudstaken kunt uitvoeren:</p>
+<h3>Clean Credentials</h3>
+<ul>
+<li>Verwijdert alle credentials uit <code>.env</code> bestand</li>
+<li>Verwijdert <code>credentials.json</code> bestand</li>
+<li>Verwijdert wachtwoorden uit RDP en SSH servers</li>
+<li>Verwijdert encryptie key file</li>
+</ul>
+<p><strong>Let op:</strong> Deze actie kan niet ongedaan worden gemaakt. Gebruik alleen als je alle credentials wilt wissen.</p>
+<h3>Migrate Key File</h3>
+<ul>
+<li>Migreert de encryptie key file van de oude locatie naar een veiligere locatie</li>
+<li>Oude key file blijft staan voor backward compatibility</li>
+<li>Nieuwe locatie: <code>%LOCALAPPDATA%\SintMaartenCampusAutologin\.credentials_key</code> (Windows)</li>
+</ul>
+<h3>Security Test</h3>
+<ul>
+<li>Voert automatische security tests uit</li>
+<li>Controleert op plaintext wachtwoorden</li>
+<li>Controleert bestandspermissies</li>
+<li>Controleert encryptie implementatie</li>
+<li>Controleert web interface beveiliging</li>
+<li>Toont gedetailleerde resultaten met aanbevelingen</li>
+</ul>
+<p><strong>Aanbeveling:</strong> Voer regelmatig een security test uit om te controleren of alles nog veilig is.</p>
+<h3>Clean Servers</h3>
+<ul>
+<li>Verwijdert alle RDP servers volledig uit de applicatie</li>
+<li>Verwijdert alle SSH servers volledig uit de applicatie</li>
+<li>Maakt de server lijsten leeg</li>
+<li>Toont gedetailleerde resultaten per server type</li>
+</ul>
+<p><strong>Let op:</strong> Deze actie kan niet ongedaan worden gemaakt. Alle servers worden permanent verwijderd uit de applicatie. Je kunt daarna nieuwe servers toevoegen via de web interface.</p>
+<h2>📚 Documentatie</h2>
+<p>De web interface bevat een ingebouwde documentatie pagina die automatisch de <code>README.md</code> leest en weergeeft:</p>
+<ul>
+<li><strong>Automatische updates:</strong> Wanneer je <code>README.md</code> aanpast, wordt de documentatie automatisch bijgewerkt in de web interface</li>
+<li><strong>Markdown ondersteuning:</strong> Volledige markdown syntax wordt ondersteund</li>
+<li><strong>Toegankelijk:</strong> Documentatie is altijd beschikbaar via het menu</li>
+</ul>
+<p>Ga naar "📚 Documentatie" in het menu om de volledige documentatie te bekijken.</p>
+<h2>⚠️ Beperkingen</h2>
+<h3>Auto Login Beperkingen</h3>
+<ol>
+<li><strong>Geen nieuwe services toevoegen via web interface</strong></li>
+<li>Alleen de 4 vooraf geconfigureerde services zijn beschikbaar</li>
+<li>
+<p>Nieuwe services vereisen code-aanpassing en een nieuwe login module</p>
+</li>
+<li>
+<p><strong>2FA (Twee-Factor Authenticatie)</strong></p>
+</li>
+<li>De tool kan niet automatisch 2FA codes invoeren</li>
+<li>Je moet handmatig de 2FA code invoeren wanneer gevraagd</li>
+<li>
+<p>De browser blijft open zodat je dit kunt doen</p>
+</li>
+<li>
+<p><strong>Microsoft SSO Redirects</strong></p>
+</li>
+<li>Google Admin login kan redirecten naar Microsoft SSO</li>
+<li>
+<p>De tool handelt dit automatisch af, maar kan extra tijd kosten</p>
+</li>
+<li>
+<p><strong>Browser Automatisering</strong></p>
+</li>
+<li>Vereist Chrome browser</li>
+<li>Selenium WebDriver wordt automatisch gedownload bij eerste gebruik</li>
+<li>Kan traag zijn bij langzame internetverbindingen</li>
+</ol>
+<h3>Remote Connections Beperkingen</h3>
+<ol>
+<li><strong>RDP</strong></li>
+<li>Werkt alleen op Windows</li>
+<li>Vereist Remote Desktop Client (standaard op Windows)</li>
+<li>
+<p>Wachtwoorden worden opgeslagen in Windows Credential Manager</p>
+</li>
+<li>
+<p><strong>SSH</strong></p>
+</li>
+<li>OpenSSH is standaard op Windows 10+, anders vereist PuTTY</li>
+<li>Automatische wachtwoord authenticatie vereist PuTTY met plink.exe</li>
+<li>Zonder PuTTY moet je wachtwoorden handmatig invoeren</li>
+</ol>
+<h3>Algemene Beperkingen</h3>
+<ol>
+<li><strong>Single User</strong></li>
+<li>De tool is ontworpen voor gebruik door één gebruiker</li>
+<li>
+<p>Credentials worden opgeslagen per Windows gebruiker</p>
+</li>
+<li>
+<p><strong>Localhost Only</strong></p>
+</li>
+<li>Web interface draait standaard alleen op localhost (127.0.0.1)</li>
+<li>
+<p>Niet geschikt voor remote access zonder extra configuratie</p>
+</li>
+<li>
+<p><strong>Windows Only</strong></p>
+</li>
+<li>RDP functionaliteit werkt alleen op Windows</li>
+<li>SSH werkt op Windows, Linux en macOS, maar is geoptimaliseerd voor Windows</li>
+</ol>
+<h2>🔒 Beveiliging</h2>
+<h3>Encryptie van Credentials</h3>
+<p>Alle wachtwoorden worden encrypted opgeslagen met <strong>Fernet (AES-128)</strong> encryptie:</p>
+<ul>
+<li><strong>Encryptie methode:</strong> Fernet symmetric encryption</li>
+<li><strong>Key opslag:</strong> Encryptie key wordt opgeslagen in een beveiligde locatie:</li>
+<li>Windows: <code>%LOCALAPPDATA%\SintMaartenCampusAutologin\.credentials_key</code></li>
+<li>Linux/macOS: <code>~/.config/sintmaartencampus-autologin/.credentials_key</code></li>
+<li><strong>Key beveiliging:</strong> Key file heeft restricted permissions (alleen eigenaar kan lezen)</li>
+</ul>
+<h3>Bestandsbeveiliging</h3>
+<ul>
+<li><strong>Credentials bestand:</strong> <code>credentials.json</code> bevat alleen encrypted wachtwoorden</li>
+<li><strong>RDP/SSH servers:</strong> Wachtwoorden worden encrypted opgeslagen in JSON bestanden</li>
+<li><strong>Bestandspermissies:</strong> Op Linux/macOS worden bestanden beschermd met 600 permissions</li>
+<li><strong>Windows:</strong> Key files worden hidden gemaakt en hebben restricted permissions</li>
+</ul>
+<h3>Input Validatie en XSS Preventie</h3>
+<p>Alle user input wordt gevalideerd en gesanitized:</p>
+<ul>
+<li><strong>HTML Escaping:</strong> Alle string input wordt HTML-escaped om XSS aanvallen te voorkomen</li>
+<li><strong>Input Validatie:</strong></li>
+<li>E-mail adressen worden gevalideerd met regex</li>
+<li>URLs worden gevalideerd (alleen http/https)</li>
+<li>Hostnames en IP adressen worden gevalideerd</li>
+<li>Poort nummers worden gevalideerd (1-65535)</li>
+<li><strong>Path Traversal Preventie:</strong> File paths worden gesanitized om directory traversal te voorkomen</li>
+<li><strong>Service Validatie:</strong> Alleen geldige service namen worden geaccepteerd</li>
+</ul>
+<h3>Web Interface Beveiliging</h3>
+<ul>
+<li><strong>Flask Secret Key:</strong> Secret key wordt gebruikt voor sessie beveiliging</li>
+<li>Standaard: <code>dev-secret-key-change-in-production</code></li>
+<li>Productie: Stel <code>FLASK_SECRET_KEY</code> environment variable in</li>
+<li><strong>Localhost Only:</strong> Web interface draait standaard alleen op localhost</li>
+<li><strong>JSON Input Validatie:</strong> Alle JSON input wordt gevalideerd voordat verwerkt</li>
+</ul>
+<h3>Git Security</h3>
+<ul>
+<li><strong>.gitignore:</strong> Alle gevoelige bestanden worden genegeerd:</li>
+<li><code>credentials.json</code></li>
+<li><code>.credentials_key</code></li>
+<li><code>.env</code></li>
+<li><code>rdp_servers.json</code></li>
+<li><code>ssh_servers.json</code></li>
+<li><strong>Geen Plaintext Passwords:</strong> Geen wachtwoorden worden gecommit naar Git</li>
+</ul>
+<h3>Aanvullende Security Measures</h3>
+<ol>
+<li><strong>Master Password Ondersteuning</strong></li>
+<li>Optioneel: Gebruik <code>CREDENTIALS_MASTER_PASSWORD</code> environment variable</li>
+<li>
+<p>Key wordt dan gegenereerd vanuit master password (geen key file nodig)</p>
+</li>
+<li>
+<p><strong>Automatische Key Migratie</strong></p>
+</li>
+<li>Oude key files worden automatisch gemigreerd naar veilige locatie</li>
+<li>
+<p>Backward compatibility wordt behouden</p>
+</li>
+<li>
+<p><strong>Error Handling</strong></p>
+</li>
+<li>Gevoelige informatie wordt niet gelekt in error messages</li>
+<li>
+<p>Decryptie fouten worden stil afgehandeld</p>
+</li>
+<li>
+<p><strong>Security Test Script</strong></p>
+</li>
+<li><code>security_test.py</code> controleert automatisch op beveiligingsproblemen</li>
+<li>Voer regelmatig uit: <code>python security_test.py</code></li>
+</ol>
+<h3>Bescherming Tegen Aanvallen</h3>
+<h4>XSS (Cross-Site Scripting)</h4>
+<ul>
+<li>✅ Alle user input wordt HTML-escaped</li>
+<li>✅ Jinja2 templates gebruiken auto-escaping</li>
+<li>✅ JavaScript input wordt gevalideerd</li>
+</ul>
+<h4>Path Traversal</h4>
+<ul>
+<li>✅ File paths worden gesanitized</li>
+<li>✅ <code>..</code> en <code>//</code> worden verwijderd uit paths</li>
+</ul>
+<h4>SQL Injection</h4>
+<ul>
+<li>✅ Geen database gebruikt (niet van toepassing)</li>
+</ul>
+<h4>CSRF (Cross-Site Request Forgery)</h4>
+<ul>
+<li>⚠️ Geen CSRF tokens geïmplementeerd (interne tool)</li>
+<li>✅ Web interface draait alleen op localhost</li>
+<li>💡 Voor productie: Overweeg Flask-WTF voor CSRF protection</li>
+</ul>
+<h4>Credential Theft</h4>
+<ul>
+<li>✅ Wachtwoorden worden nooit in plaintext opgeslagen</li>
+<li>✅ Encryptie key wordt apart opgeslagen</li>
+<li>✅ Bestandspermissies beperken toegang</li>
+<li>✅ Geen credentials in Git repository</li>
+</ul>
+<h4>Man-in-the-Middle</h4>
+<ul>
+<li>✅ HTTPS wordt gebruikt voor web logins (via browser)</li>
+<li>⚠️ Web interface gebruikt HTTP (localhost only)</li>
+<li>💡 Voor remote access: Gebruik HTTPS reverse proxy</li>
+</ul>
+<h2>🔧 Troubleshooting</h2>
+<h3>Probleem: "Credentials ontbreken" foutmelding</h3>
+<p><strong>Oplossing:</strong><br />
+1. Ga naar "Credentials Beheer" in de web interface<br />
+2. Vul alle verplichte velden in voor de service<br />
+3. Klik op "Opslaan"<br />
+4. Probeer opnieuw</p>
+<h3>Probleem: Browser opent niet of login werkt niet</h3>
+<p><strong>Oplossingen:</strong><br />
+1. Controleer of Chrome is geïnstalleerd<br />
+2. Controleer je internetverbinding<br />
+3. Controleer of de credentials correct zijn<br />
+4. Bekijk de terminal output voor error messages</p>
+<h3>Probleem: SSH wachtwoord wordt niet automatisch ingevuld</h3>
+<p><strong>Oplossingen:</strong><br />
+1. Installeer PuTTY (vereist voor automatische wachtwoord authenticatie)<br />
+2. Of gebruik een private key file in plaats van wachtwoord<br />
+3. Of voer wachtwoord handmatig in wanneer gevraagd</p>
+<h3>Probleem: RDP verbinding werkt niet</h3>
+<p><strong>Oplossingen:</strong><br />
+1. Controleer of Remote Desktop is ingeschakeld op de server<br />
+2. Controleer of de hostname/IP correct is<br />
+3. Controleer of de gebruikersnaam en wachtwoord correct zijn<br />
+4. Test handmatig met <code>mstsc</code> command</p>
+<h3>Probleem: Encryptie key niet gevonden</h3>
+<p><strong>Oplossingen:</strong><br />
+1. De key wordt automatisch aangemaakt bij eerste gebruik<br />
+2. Controleer bestandspermissies<br />
+3. Voer <code>python migrate_key_file.py</code> uit als migratie nodig is</p>
+<h3>Probleem: Security test faalt</h3>
+<p><strong>Oplossingen:</strong><br />
+1. Voer <code>python security_test.py</code> uit om problemen te identificeren<br />
+2. Of gebruik de Utilities pagina in de web interface om de security test uit te voeren<br />
+3. Controleer of alle bestanden correct zijn geconfigureerd<br />
+4. Controleer bestandspermissies</p>
+<h3>Probleem: Utilities scripts werken niet</h3>
+<p><strong>Oplossingen:</strong><br />
+1. Controleer of je de juiste permissies hebt om bestanden te wijzigen<br />
+2. Controleer of de scripts bestaan in de scripts directory<br />
+3. Bekijk de resultaten in de web interface voor specifieke foutmeldingen</p>
+<h3>Probleem: Clean Servers verwijdert geen servers</h3>
+<p><strong>Oplossingen:</strong><br />
+1. Controleer of er daadwerkelijk servers zijn opgeslagen<br />
+2. Controleer of de JSON bestanden (rdp_servers.json, ssh_servers.json) bestaan<br />
+3. Bekijk de resultaten in de web interface voor details per server type<br />
+4. Controleer of je de juiste permissies hebt om bestanden te wijzigen</p>
+<h2>🔐 Security Best Practices</h2>
+<ol>
+<li>
+<p><strong>Gebruik een sterke Flask secret key in productie:</strong><br />
+<code>bash
+   set FLASK_SECRET_KEY=your-strong-random-secret-key-here</code><br />
+   Of voor de executable: Maak een <code>.env</code> bestand met <code>FLASK_SECRET_KEY=your-key</code></p>
+</li>
+<li>
+<p><strong>Voor productie gebruik:</strong><br />
+<code>bash
+   set FLASK_DEBUG=False
+   set FLASK_PORT=5000</code></p>
+</li>
+<li>
+<p><strong>Voer regelmatig security tests uit:</strong></p>
+</li>
+<li>Via web interface: Ga naar "Utilities" → "Security Test"</li>
+<li>
+<p>Of via command line: <code>python security_test.py</code></p>
+</li>
+<li>
+<p><strong>Gebruik master password voor extra beveiliging:</strong><br />
+<code>bash
+   set CREDENTIALS_MASTER_PASSWORD=your-master-password</code></p>
+</li>
+<li>
+<p><strong>Houd dependencies up-to-date:</strong><br />
+<code>bash
+   pip install --upgrade -r requirements.txt</code></p>
+</li>
+<li>
+<p><strong>Backup encryptie key:</strong></p>
+</li>
+<li>Backup de <code>.credentials_key</code> file op een veilige locatie</li>
+<li>Zonder deze key kun je encrypted credentials niet decrypten</li>
+</ol>
+<h2>📞 Ondersteuning</h2>
+<p>Voor vragen of problemen:<br />
+1. Controleer deze documentatie<br />
+2. Voer <code>python security_test.py</code> uit om beveiligingsproblemen te identificeren<br />
+3. Bekijk de terminal output voor error messages</p>
+<h2>📄 Licentie</h2>
+<p>Deze tool is ontwikkeld voor intern gebruik bij Sint-Maarten Campus.</p>
+<hr />
+<p><strong>Versie:</strong> 1.0.3<br />
+<strong>Laatste update:</strong> Februari 2026<br />
+<strong>Auteur:</strong> Wesley Van Hoof</p>
+<h3>Changelog</h3>
+<h4>Versie 1.0.3 (Februari 2026)</h4>
+<ul>
+<li>✅ Clean Servers functionaliteit aangepast: verwijdert nu volledige servers (niet alleen wachtwoorden)</li>
+<li>✅ Verbeterde web interface display voor Clean Servers resultaten</li>
+<li>✅ Duidelijke waarschuwing dat Clean Servers actie niet ongedaan kan worden gemaakt</li>
+<li>✅ Security test uitgevoerd: alle tests geslaagd</li>
+<li>✅ Productie-instellingen toegevoegd (debug mode, secret key handling)</li>
+<li>✅ Windows executable build ondersteuning (PyInstaller)</li>
+<li>✅ Build scripts toegevoegd voor distributie</li>
+</ul>
+<h4>Versie 1.0.2 (Februari 2026)</h4>
+<ul>
+<li>✅ Clean Servers script geïntegreerd in web interface</li>
+<li>✅ Verbeterde documentatie voor Utilities functionaliteit</li>
+<li>✅ Clean Servers ondersteunt encrypted wachtwoorden (decrypt, verwijder, opslaan)</li>
+<li>✅ Verbeterde error handling in Clean Servers script</li>
+</ul>
+<h4>Versie 1.0.1 (Februari 2026)</h4>
+<ul>
+<li>✅ Utilities pagina toegevoegd voor uitvoeren van fix scripts</li>
+<li>✅ Ingebouwde documentatie pagina die automatisch README.md leest</li>
+<li>✅ SSH wachtwoord authenticatie ondersteuning (met PuTTY)</li>
+<li>✅ Verbeterde input validatie en XSS preventie</li>
+<li>✅ Security test script geïntegreerd in web interface</li>
+<li>✅ Automatische key file migratie functionaliteit</li>
+<li>✅ Clean Servers script toegevoegd (RDP en SSH wachtwoorden verwijderen)</li>
+<li>✅ Verbeterde error handling en gebruikersfeedback</li>
+</ul>
+<h4>Versie 1.0 (Februari 2026)</h4>
+<ul>
+<li>✅ Eerste release</li>
+<li>✅ Auto-login voor Smartschool, Microsoft Admin, Google Admin, Easy4U</li>
+<li>✅ RDP en SSH server beheer</li>
+<li>✅ Encrypted credential opslag</li>
+<li>✅ Web interface voor beheer</li>
+</ul>
+        
+    </div>
+</div>
+
+    </div>
+
+    
+
+    
+    <script>
+        // API Bridge: schakel tussen pywebview.api (standalone) en fetch (Flask)
+        window.appApi = {
+            // Lazy check voor pywebview.api (kan nog niet beschikbaar zijn bij initialisatie)
+            _getApi: function() {
+                if (typeof window.pywebview !== 'undefined' && window.pywebview.api) {
+                    return window.pywebview.api;
+                }
+                return null;
+            },
+            
+            getCredentials: async function() {
+                const api = this._getApi();
+                if (api) {
+                    return await api.getCredentials();
+                }
+                const response = await fetch('/api/credentials');
+                return await response.json();
+            },
+            
+            saveCredentials: async function(service, data) {
+                const api = this._getApi();
+                if (api) {
+                    return await api.saveCredentials(service, data);
+                }
+                const response = await fetch(`/api/credentials/${service}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                return await response.json();
+            },
+            
+            getRdpServers: async function() {
+                const api = this._getApi();
+                if (api) {
+                    return await api.getRdpServers();
+                }
+                const response = await fetch('/api/rdp-servers');
+                return await response.json();
+            },
+            
+            saveRdpServer: async function(data) {
+                const api = this._getApi();
+                if (api) {
+                    return await api.addRdpServer(data);
+                }
+                const response = await fetch('/api/rdp-servers', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                return await response.json();
+            },
+            
+            deleteRdpServer: async function(serverId) {
+                const api = this._getApi();
+                if (api) {
+                    return await api.deleteRdpServer(serverId);
+                }
+                const response = await fetch(`/api/rdp-servers/${serverId}`, {
+                    method: 'DELETE'
+                });
+                return await response.json();
+            },
+            
+            getSshServers: async function() {
+                const api = this._getApi();
+                if (api) {
+                    return await api.getSshServers();
+                }
+                const response = await fetch('/api/ssh-servers');
+                return await response.json();
+            },
+            
+            saveSshServer: async function(data) {
+                const api = this._getApi();
+                if (api) {
+                    return await api.addSshServer(data);
+                }
+                const response = await fetch('/api/ssh-servers', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                return await response.json();
+            },
+            
+            deleteSshServer: async function(serverId) {
+                const api = this._getApi();
+                if (api) {
+                    return await api.deleteSshServer(serverId);
+                }
+                const response = await fetch(`/api/ssh-servers/${serverId}`, {
+                    method: 'DELETE'
+                });
+                return await response.json();
+            },
+            
+            login: async function(service) {
+                const api = this._getApi();
+                if (api) {
+                    return await api.login(service);
+                }
+                const response = await fetch(`/api/login/${service}`, {
+                    method: 'POST'
+                });
+                return await response.json();
+            },
+            
+            runUtility: async function(utility) {
+                const api = this._getApi();
+                if (api) {
+                    return await api.runUtility(utility);
+                }
+                const response = await fetch(`/api/utilities/${utility}`, {
+                    method: 'POST'
+                });
+                return await response.json();
+            },
+            
+            getDocumentationHtml: async function() {
+                const api = this._getApi();
+                if (api) {
+                    return await api.getDocumentationHtml();
+                }
+                const response = await fetch('/api/documentation');
+                return await response.text();
+            },
+            
+            getVersion: async function() {
+                const api = this._getApi();
+                if (api) {
+                    return await api.getVersion();
+                }
+                const response = await fetch('/api/version');
+                return await response.json();
+            }
+        };
+        
+        // Markeer actieve navigatie link
+        const currentPath = window.location.pathname;
+        const navLinks = {
+            '/': 'nav-home',
+            '/auto-login': 'nav-auto-login',
+            '/credentials': 'nav-credentials',
+            '/remote-connections': 'nav-remote',
+            '/utilities': 'nav-utilities',
+            '/documentation': 'nav-documentation',
+            'index.html': 'nav-home',
+            'auto_login.html': 'nav-auto-login',
+            'credentials.html': 'nav-credentials',
+            'remote_connections.html': 'nav-remote',
+            'utilities.html': 'nav-utilities',
+            'documentation.html': 'nav-documentation'
+        };
+        
+        // Check zowel pathname als filename voor standalone modus
+        const pathKey = currentPath.split('/').pop() || '/';
+        const activeNavId = navLinks[currentPath] || navLinks[pathKey];
+        if (activeNavId) {
+            const element = document.getElementById(activeNavId);
+            if (element) {
+                element.classList.add('active');
+            }
+        }
+    </script>
+    
+</body>
+</html>

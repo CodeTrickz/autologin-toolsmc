@@ -35,7 +35,7 @@ if exist __pycache__ rmdir /s /q __pycache__
 
 echo.
 echo Export static HTML voor standalone-modus...
-python -c "import sys; sys.path.insert(0, '.'); from src.web.export_static import export; export()"
+python -c "from export_static import export; export()"
 if errorlevel 1 (
     echo WAARSCHUWING: export_static mislukt. Standalone-modus kan bij eerste start iets trager zijn.
 )

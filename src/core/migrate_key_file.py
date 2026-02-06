@@ -3,10 +3,16 @@ Migratie script om de encryptie key file te verplaatsen naar een veiligere locat
 Dit script moet worden uitgevoerd als je een upgrade doet naar de nieuwe versie.
 """
 import os
+import sys
 import shutil
 from pathlib import Path
 
-SCRIPTS_DIR = Path(__file__).parent
+# Add parent directory to path for imports
+SCRIPTS_DIR = Path(__file__).parent.parent.parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
+# Oude locatie: in project root
 OLD_KEY_FILE = SCRIPTS_DIR / ".credentials_key"
 
 if os.name == "nt":  # Windows

@@ -38,16 +38,17 @@ from src.core.security_utils import (
     sanitize_json_input,
 )
 
-app = Flask(__name__)
+# Pad naar project root (waar templates/ staat)
+TEMPLATES_DIR = SCRIPTS_DIR / "templates"
+
+# Flask app met correct template folder
+app = Flask(__name__, template_folder=str(TEMPLATES_DIR))
 # Secret key voor sessies en CSRF protection
 # In productie: gebruik een sterke, willekeurige secret key
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-key-change-in-production")
 
 # Applicatieversie (één plek; ook zichtbaar in webinterface en API)
-APP_VERSION = "1.0.4"
-
-# Pad: templates in bundel, data (credentials/servers) in persistente map
-SCRIPTS_DIR = Path(__file__).parent
+APP_VERSION = "1.0.5"
 DATA_DIR = get_data_dir()
 RDP_SERVERS_FILE = DATA_DIR / "rdp_servers.json"
 SSH_SERVERS_FILE = DATA_DIR / "ssh_servers.json"
@@ -74,7 +75,7 @@ def load_rdp_servers():
             encrypted_data = json.load(f)
         
         # Decrypt wachtwoorden
-        from credentials_manager import decrypt_password
+        from src.core.credentials_manager import decrypt_password
         
         decrypted_servers = []
         for server in encrypted_data:
@@ -93,7 +94,7 @@ def load_rdp_servers():
 def save_rdp_servers(servers):
     """Encrypt en sla RDP servers op in JSON bestand."""
     try:
-        from credentials_manager import encrypt_password
+        from src.core.credentials_manager import encrypt_password
         
         # Encrypt wachtwoorden
         encrypted_servers = []
@@ -127,7 +128,7 @@ def load_ssh_servers():
             encrypted_data = json.load(f)
         
         # Decrypt wachtwoorden
-        from credentials_manager import decrypt_password
+        from src.core.credentials_manager import decrypt_password
         
         decrypted_servers = []
         for server in encrypted_data:
@@ -150,7 +151,7 @@ def load_ssh_servers():
 def save_ssh_servers(servers):
     """Encrypt en sla SSH servers op in JSON bestand."""
     try:
-        from credentials_manager import encrypt_password
+        from src.core.credentials_manager import encrypt_password
         
         # Encrypt wachtwoorden
         encrypted_servers = []
@@ -249,7 +250,7 @@ def run_utility(utility):
     
     try:
         if utility == "clean_credentials":
-            from clean_credentials import run_clean_all
+            from src.core.clean_credentials import run_clean_all
             results = run_clean_all()
             return jsonify({
                 "success": True,
@@ -259,7 +260,7 @@ def run_utility(utility):
             })
         
         elif utility == "migrate_key":
-            from migrate_key_file import migrate_key_file
+            from src.core.migrate_key_file import migrate_key_file
             result = migrate_key_file()
             return jsonify({
                 "success": result.get("success", False),
@@ -269,7 +270,7 @@ def run_utility(utility):
             })
         
         elif utility == "security_test":
-            from security_test import SecurityTest
+            from src.core.security_test import SecurityTest
             test = SecurityTest()
             test.run_all_tests()
             results = test.get_results()
@@ -281,7 +282,7 @@ def run_utility(utility):
             })
         
         elif utility == "clean_servers":
-            from clean_servers import clean_all_servers
+            from src.core.clean_servers import clean_all_servers
             result = clean_all_servers()
             return jsonify({
                 "success": result.get("success", False),
@@ -428,7 +429,7 @@ def connect_rdp():
 
     try:
         # Gebruik de functie uit auto_rdp_sessions.py
-        from auto_rdp_sessions import _start_single_rdp
+        from src.auto_login.auto_rdp_sessions import _start_single_rdp
 
         _start_single_rdp(host, user, password)
         return jsonify({"success": True, "message": f"RDP connectie naar {host} gestart"})
@@ -509,7 +510,7 @@ def connect_ssh():
         return jsonify({"success": False, "error": "Host is verplicht"}), 400
 
     try:
-        from auto_ssh_connect import start_ssh_connection
+        from src.auto_login.auto_ssh_connect import start_ssh_connection
 
         start_ssh_connection(host, user, port, key_file, password)
         return jsonify({"success": True, "message": f"SSH verbinding naar {host} gestart"})
@@ -663,7 +664,8 @@ def save_service_credentials(service):
             "password": password,
         }
     elif service == "easy4u":
-        url = sanitize_string(data.get("url", "https://my.easy4u.be/nl/login"))
+        # Altijd de officiële Nederlandse login-URL gebruiken (niet my.easy4u.be)
+        url = "https://easy4u.nl/admin/"
         email = sanitize_string(data.get("email", ""))
         password = data.get("password", "")
         

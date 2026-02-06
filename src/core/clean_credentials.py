@@ -4,10 +4,8 @@ Verwijdert alle wachtwoorden uit .env en credentials.json.
 Gebruikt dezelfde datamap als de app (get_data_dir) zodat het ook werkt vanuit de .exe.
 """
 import os
-import json
-from pathlib import Path
-
 import sys
+import json
 from pathlib import Path
 
 # Add parent directory to path for imports

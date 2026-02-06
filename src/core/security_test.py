@@ -9,11 +9,19 @@ import stat
 from pathlib import Path
 from cryptography.fernet import Fernet
 
-SCRIPTS_DIR = Path(__file__).parent
-CREDENTIALS_FILE = SCRIPTS_DIR / "credentials.json"
-RDP_SERVERS_FILE = SCRIPTS_DIR / "rdp_servers.json"
-SSH_SERVERS_FILE = SCRIPTS_DIR / "ssh_servers.json"
-ENV_FILE = SCRIPTS_DIR / ".env"
+# Add parent directory to path for imports
+SCRIPTS_DIR = Path(__file__).parent.parent.parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
+# Use get_data_dir for file paths (works for both dev and .exe)
+from src.core.credentials_manager import get_data_dir
+DATA_DIR = get_data_dir()
+
+CREDENTIALS_FILE = DATA_DIR / "credentials.json"
+RDP_SERVERS_FILE = DATA_DIR / "rdp_servers.json"
+SSH_SERVERS_FILE = DATA_DIR / "ssh_servers.json"
+ENV_FILE = DATA_DIR / ".env"
 KEY_FILE_OLD = SCRIPTS_DIR / ".credentials_key"
 
 # Nieuwe key file locaties
@@ -28,6 +36,15 @@ class SecurityTest:
         self.issues = []
         self.warnings = []
         self.passed = []
+        
+        # Zorg dat sys.path correct is ingesteld voor imports
+        if str(SCRIPTS_DIR) not in sys.path:
+            sys.path.insert(0, str(SCRIPTS_DIR))
+        
+        # Debug: log sys.path voor troubleshooting
+        if hasattr(self, '_debug') and self._debug:
+            print(f"SecurityTest initialized, SCRIPTS_DIR: {SCRIPTS_DIR}")
+            print(f"sys.path (first 3): {sys.path[:3]}")
     
     def add_issue(self, severity, category, message, recommendation=""):
         if severity == "CRITICAL":
@@ -207,7 +224,23 @@ class SecurityTest:
         print("\n[TEST 4] Controleer encryptie implementatie...")
         
         try:
-            from credentials_manager import get_encryption_key, encrypt_password, decrypt_password
+            # Probeer verschillende import methoden
+            try:
+                from src.core.credentials_manager import get_encryption_key, encrypt_password, decrypt_password
+            except ImportError:
+                # Fallback: probeer direct import
+                try:
+                    from credentials_manager import get_encryption_key, encrypt_password, decrypt_password
+                except ImportError:
+                    # Laatste fallback: import module en gebruik attributen
+                    import importlib
+                    try:
+                        cm_module = importlib.import_module('src.core.credentials_manager')
+                        get_encryption_key = cm_module.get_encryption_key
+                        encrypt_password = cm_module.encrypt_password
+                        decrypt_password = cm_module.decrypt_password
+                    except Exception as import_err:
+                        raise ImportError(f"Kon credentials_manager niet importeren: {import_err}")
             
             # Test encryptie/decryptie
             test_password = "test_password_123"
@@ -248,18 +281,30 @@ class SecurityTest:
                 )
                 
         except ImportError as e:
-            self.add_issue(
-                "CRITICAL",
-                "Encryption",
-                f"Kon encryptie modules niet importeren: {e}",
-                "Installeer cryptography: pip install cryptography"
-            )
+            # Meer gedetailleerde error message
+            import traceback
+            error_details = str(e)
+            if "credentials_manager" in error_details.lower():
+                self.add_issue(
+                    "CRITICAL",
+                    "Encryption",
+                    f"Kon encryptie modules niet importeren: {e}",
+                    f"Controleer sys.path: {sys.path[:3]}... Controleer of src/core/credentials_manager.py bestaat."
+                )
+            else:
+                self.add_issue(
+                    "CRITICAL",
+                    "Encryption",
+                    f"Kon encryptie modules niet importeren: {e}",
+                    "Installeer cryptography: pip install cryptography"
+                )
         except Exception as e:
+            import traceback
             self.add_issue(
                 "WARNING",
                 "Encryption",
                 f"Fout bij testen encryptie: {e}",
-                "Controleer credentials_manager.py"
+                f"Controleer credentials_manager.py. Traceback: {traceback.format_exc()[:200]}"
             )
     
     def test_5_web_security(self):
@@ -268,7 +313,7 @@ class SecurityTest:
         
         # Check of Flask secret key is ingesteld
         try:
-            from web_interface import app
+            from src.web.web_interface import app
             if not app.secret_key or app.secret_key == "dev-secret-key":
                 self.add_issue(
                     "WARNING",
@@ -288,28 +333,55 @@ class SecurityTest:
         
         # Check of er input validatie is
         try:
-            from security_utils import (
-                sanitize_string,
-                validate_email,
-                validate_url,
-                validate_hostname,
-            )
+            # Probeer verschillende import methoden
+            try:
+                from src.core.security_utils import (
+                    sanitize_string,
+                    validate_email,
+                    validate_url,
+                    validate_hostname,
+                )
+            except ImportError:
+                # Fallback: probeer direct import
+                try:
+                    from security_utils import (
+                        sanitize_string,
+                        validate_email,
+                        validate_url,
+                        validate_hostname,
+                    )
+                except ImportError:
+                    # Laatste fallback: import module en gebruik attributen
+                    import importlib
+                    su_module = importlib.import_module('src.core.security_utils')
+                    sanitize_string = su_module.sanitize_string
+                    validate_email = su_module.validate_email
+                    validate_url = su_module.validate_url
+                    validate_hostname = su_module.validate_hostname
+            
             self.add_pass("Web Security", "Input validatie en sanitization modules aanwezig")
-        except ImportError:
+        except ImportError as e:
             self.add_issue(
                 "WARNING",
                 "Web Security",
-                "Security utilities module niet gevonden",
-                "Zorg dat security_utils.py bestaat met input validatie functies"
+                f"Security utilities module niet gevonden: {e}",
+                f"Zorg dat src/core/security_utils.py bestaat. sys.path: {sys.path[:3]}..."
+            )
+        except Exception as e:
+            self.add_issue(
+                "WARNING",
+                "Web Security",
+                f"Fout bij importeren security_utils: {e}",
+                "Controleer of src/core/security_utils.py bestaat en correct is"
             )
         
         # Check of security utils worden gebruikt in web_interface (alleen als bronbestand bestaat, niet in gebundelde app)
-        web_interface_path = SCRIPTS_DIR / "web_interface.py"
+        web_interface_path = SCRIPTS_DIR / "src" / "web" / "web_interface.py"
         if web_interface_path.exists():
             try:
                 with open(web_interface_path, "r", encoding="utf-8") as f:
                     content = f.read()
-                    if "from security_utils import" in content:
+                    if "from src.core.security_utils import" in content or "from security_utils import" in content:
                         self.add_pass("Web Security", "Security utilities worden gebruikt in web_interface")
                     else:
                         self.add_issue(
@@ -337,7 +409,7 @@ class SecurityTest:
             or "_internal" in scripts_str
             or "dist" in scripts_str
             or "program files" in scripts_str
-            or not (SCRIPTS_DIR / "web_interface.py").exists()
+            or not (SCRIPTS_DIR / "src" / "web" / "web_interface.py").exists()
         )
 
     def test_6_sensitive_data_exposure(self):

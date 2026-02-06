@@ -8,9 +8,6 @@ import json
 import sys
 from pathlib import Path
 
-import sys
-from pathlib import Path
-
 # Add parent directory to path for imports
 SCRIPTS_DIR = Path(__file__).parent.parent.parent
 if str(SCRIPTS_DIR) not in sys.path:

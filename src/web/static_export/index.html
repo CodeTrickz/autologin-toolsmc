@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Sint Maarten Campus Autologin Tool{% endblock %}</title>
+    <title>Home - Sint Maarten Campus Autologin Tool</title>
     <style>
         * {
             margin: 0;
@@ -292,7 +292,7 @@
             to { transform: rotate(360deg); }
         }
     </style>
-    {% block extra_css %}{% endblock %}
+    
 </head>
 <body>
     <div class="container">
@@ -307,32 +307,40 @@
             <a href="/documentation" id="nav-documentation">📚 Documentatie</a>
         </nav>
 
-        {% block content %}{% endblock %}
+        
+<div class="section">
+    <h2>Welkom</h2>
+    <p style="font-size: 1.1em; color: #666; line-height: 1.6;">
+        Welkom bij de Auto Login & Remote Manager! Gebruik de navigatie boven om naar de verschillende secties te gaan:
+    </p>
+    <div style="margin-top: 30px;">
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 15px;">
+            <h3 style="color: #2d8659; margin-bottom: 10px;">🌐 Auto Login</h3>
+            <p style="color: #666;">Automatisch inloggen op verschillende websites zoals Smartschool, Microsoft Admin, Google Admin en Easy4U.</p>
+        </div>
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 15px;">
+            <h3 style="color: #2d8659; margin-bottom: 10px;">🔐 Credentials</h3>
+            <p style="color: #666;">Beheer je inloggegevens voor alle services. Voeg, bewerk en verwijder credentials veilig.</p>
+        </div>
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+            <h3 style="color: #2d8659; margin-bottom: 10px;">🖥️ Remote Connections</h3>
+            <p style="color: #666;">Beheer RDP en SSH server connecties. Voeg servers toe en maak snel verbindingen.</p>
+        </div>
+    </div>
+</div>
+
     </div>
 
-    {% block modals %}{% endblock %}
+    
 
-    {% block scripts %}
+    
     <script>
         // API Bridge: schakel tussen pywebview.api (standalone) en fetch (Flask)
         window.appApi = {
             // Lazy check voor pywebview.api (kan nog niet beschikbaar zijn bij initialisatie)
             _getApi: function() {
-                try {
-                    if (typeof window.pywebview !== 'undefined' && window.pywebview && window.pywebview.api) {
-                        const api = window.pywebview.api;
-                        // Debug: log beschikbare methods
-                        if (console && console.debug) {
-                            console.debug('pywebview.api beschikbaar, methods:', Object.keys(api));
-                        }
-                        return api;
-                    }
-                } catch (e) {
-                    console.error('Error accessing pywebview.api:', e);
-                }
-                // Debug: log als API niet beschikbaar is
-                if (console && console.debug) {
-                    console.debug('pywebview.api niet beschikbaar, gebruik fetch fallback');
+                if (typeof window.pywebview !== 'undefined' && window.pywebview.api) {
+                    return window.pywebview.api;
                 }
                 return null;
             },
@@ -340,15 +348,7 @@
             getCredentials: async function() {
                 const api = this._getApi();
                 if (api) {
-                    // Pywebview converteert snake_case naar camelCase, maar controleer beide
-                    if (typeof api.getCredentials === 'function') {
-                        return await api.getCredentials();
-                    } else if (typeof api.get_credentials === 'function') {
-                        return await api.get_credentials();
-                    } else {
-                        console.error('API methods available:', Object.keys(api));
-                        throw new Error('getCredentials method niet gevonden');
-                    }
+                    return await api.getCredentials();
                 }
                 const response = await fetch('/api/credentials');
                 return await response.json();
@@ -357,16 +357,7 @@
             saveCredentials: async function(service, data) {
                 const api = this._getApi();
                 if (api) {
-                    // Pywebview converteert snake_case naar camelCase, maar controleer beide
-                    if (typeof api.saveCredentials === 'function') {
-                        return await api.saveCredentials(service, data);
-                    } else if (typeof api.save_credentials === 'function') {
-                        // Fallback voor het geval pywebview de conversie niet doet
-                        return await api.save_credentials(service, data);
-                    } else {
-                        console.error('API methods available:', Object.keys(api));
-                        throw new Error('saveCredentials method niet gevonden in pywebview.api');
-                    }
+                    return await api.saveCredentials(service, data);
                 }
                 const response = await fetch(`/api/credentials/${service}`, {
                     method: 'POST',
@@ -379,20 +370,18 @@
             getRdpServers: async function() {
                 const api = this._getApi();
                 if (api) {
-                    if (typeof api.getRdpServers === 'function') return await api.getRdpServers();
-                    if (typeof api.get_rdp_servers === 'function') return await api.get_rdp_servers();
+                    return await api.getRdpServers();
                 }
-                const response = await fetch('/api/rdp/servers');
+                const response = await fetch('/api/rdp-servers');
                 return await response.json();
             },
             
             saveRdpServer: async function(data) {
                 const api = this._getApi();
                 if (api) {
-                    if (typeof api.addRdpServer === 'function') return await api.addRdpServer(data);
-                    if (typeof api.add_rdp_server === 'function') return await api.add_rdp_server(data);
+                    return await api.addRdpServer(data);
                 }
-                const response = await fetch('/api/rdp/servers', {
+                const response = await fetch('/api/rdp-servers', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(data)
@@ -403,10 +392,9 @@
             deleteRdpServer: async function(serverId) {
                 const api = this._getApi();
                 if (api) {
-                    if (typeof api.deleteRdpServer === 'function') return await api.deleteRdpServer(serverId);
-                    if (typeof api.delete_rdp_server === 'function') return await api.delete_rdp_server(serverId);
+                    return await api.deleteRdpServer(serverId);
                 }
-                const response = await fetch(`/api/rdp/servers/${serverId}`, {
+                const response = await fetch(`/api/rdp-servers/${serverId}`, {
                     method: 'DELETE'
                 });
                 return await response.json();
@@ -415,20 +403,18 @@
             getSshServers: async function() {
                 const api = this._getApi();
                 if (api) {
-                    if (typeof api.getSshServers === 'function') return await api.getSshServers();
-                    if (typeof api.get_ssh_servers === 'function') return await api.get_ssh_servers();
+                    return await api.getSshServers();
                 }
-                const response = await fetch('/api/ssh/servers');
+                const response = await fetch('/api/ssh-servers');
                 return await response.json();
             },
             
             saveSshServer: async function(data) {
                 const api = this._getApi();
                 if (api) {
-                    if (typeof api.addSshServer === 'function') return await api.addSshServer(data);
-                    if (typeof api.add_ssh_server === 'function') return await api.add_ssh_server(data);
+                    return await api.addSshServer(data);
                 }
-                const response = await fetch('/api/ssh/servers', {
+                const response = await fetch('/api/ssh-servers', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(data)
@@ -439,10 +425,9 @@
             deleteSshServer: async function(serverId) {
                 const api = this._getApi();
                 if (api) {
-                    if (typeof api.deleteSshServer === 'function') return await api.deleteSshServer(serverId);
-                    if (typeof api.delete_ssh_server === 'function') return await api.delete_ssh_server(serverId);
+                    return await api.deleteSshServer(serverId);
                 }
-                const response = await fetch(`/api/ssh/servers/${serverId}`, {
+                const response = await fetch(`/api/ssh-servers/${serverId}`, {
                     method: 'DELETE'
                 });
                 return await response.json();
@@ -451,7 +436,7 @@
             login: async function(service) {
                 const api = this._getApi();
                 if (api) {
-                    if (typeof api.login === 'function') return await api.login(service);
+                    return await api.login(service);
                 }
                 const response = await fetch(`/api/login/${service}`, {
                     method: 'POST'
@@ -459,39 +444,10 @@
                 return await response.json();
             },
             
-            connectRdp: async function(data) {
-                const api = this._getApi();
-                if (api) {
-                    if (typeof api.connectRdp === 'function') return await api.connectRdp(data);
-                    if (typeof api.connect_rdp === 'function') return await api.connect_rdp(data);
-                }
-                const response = await fetch('/api/rdp/connect', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(data)
-                });
-                return await response.json();
-            },
-            
-            connectSsh: async function(data) {
-                const api = this._getApi();
-                if (api) {
-                    if (typeof api.connectSsh === 'function') return await api.connectSsh(data);
-                    if (typeof api.connect_ssh === 'function') return await api.connect_ssh(data);
-                }
-                const response = await fetch('/api/ssh/connect', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(data)
-                });
-                return await response.json();
-            },
-            
             runUtility: async function(utility) {
                 const api = this._getApi();
                 if (api) {
-                    if (typeof api.runUtility === 'function') return await api.runUtility(utility);
-                    if (typeof api.run_utility === 'function') return await api.run_utility(utility);
+                    return await api.runUtility(utility);
                 }
                 const response = await fetch(`/api/utilities/${utility}`, {
                     method: 'POST'
@@ -502,8 +458,7 @@
             getDocumentationHtml: async function() {
                 const api = this._getApi();
                 if (api) {
-                    if (typeof api.getDocumentationHtml === 'function') return await api.getDocumentationHtml();
-                    if (typeof api.get_documentation_html === 'function') return await api.get_documentation_html();
+                    return await api.getDocumentationHtml();
                 }
                 const response = await fetch('/api/documentation');
                 return await response.text();
@@ -512,8 +467,7 @@
             getVersion: async function() {
                 const api = this._getApi();
                 if (api) {
-                    if (typeof api.getVersion === 'function') return await api.getVersion();
-                    if (typeof api.get_version === 'function') return await api.get_version();
+                    return await api.getVersion();
                 }
                 const response = await fetch('/api/version');
                 return await response.json();
@@ -547,6 +501,6 @@
             }
         }
     </script>
-    {% endblock %}
+    
 </body>
 </html>

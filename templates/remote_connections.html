@@ -199,7 +199,7 @@
         };
 
         try {
-            const data = await window.appApi.addRdpServer(server);
+            const data = await window.appApi.saveRdpServer(server);
 
             if (data.success) {
                 showAlert('✅ Server succesvol toegevoegd!', 'success', 'rdp-alert-container');
@@ -316,7 +316,7 @@
             };
 
         try {
-            const data = await window.appApi.addSshServer(server);
+            const data = await window.appApi.saveSshServer(server);
 
             if (data.success) {
                 showAlert('✅ Server succesvol toegevoegd!', 'success', 'ssh-alert-container');

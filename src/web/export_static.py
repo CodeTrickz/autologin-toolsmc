@@ -15,7 +15,8 @@ if str(SCRIPTS_DIR) not in sys.path:
 
 from src.web.web_interface import app, APP_VERSION
 
-OUTPUT_DIR = Path(__file__).parent / "static_export"
+# Output directory moet in project root zijn, niet in src/web/
+OUTPUT_DIR = SCRIPTS_DIR / "static_export"
 
 
 def _render_documentation_html():

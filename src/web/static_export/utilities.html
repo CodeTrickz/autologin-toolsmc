@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Sint Maarten Campus Autologin Tool{% endblock %}</title>
+    <title>Utilities</title>
     <style>
         * {
             margin: 0;
@@ -292,7 +292,7 @@
             to { transform: rotate(360deg); }
         }
     </style>
-    {% block extra_css %}{% endblock %}
+    
 </head>
 <body>
     <div class="container">
@@ -307,32 +307,49 @@
             <a href="/documentation" id="nav-documentation">📚 Documentatie</a>
         </nav>
 
-        {% block content %}{% endblock %}
+        
+<div class="section">
+    <h2>🔧 Utilities</h2>
+    <p style="color: #666; margin-bottom: 20px;">Voer utility scripts uit om het systeem te onderhouden en te testen.</p>
+    
+    <div class="buttons-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+        <button class="btn btn-login" onclick="runUtility('clean_credentials')" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);">
+            🧹 Clean Credentials
+        </button>
+        <button class="btn btn-login" onclick="runUtility('migrate_key')" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);">
+            🔄 Migrate Key File
+        </button>
+        <button class="btn btn-login" onclick="runUtility('security_test')" style="background: linear-gradient(135deg, #28a745 0%, #218838 100%);">
+            🔒 Security Test
+        </button>
+        <button class="btn btn-login" onclick="runUtility('clean_servers')" style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);">
+            🗑️ Clean Servers
+        </button>
+    </div>
+    
+    <div id="utility-alert-container" style="margin-top: 20px;"></div>
+    
+    <div id="utility-results" style="margin-top: 20px; display: none;">
+        <div class="section" style="background: #f8f9fa;">
+            <h3 style="color: #2d8659; margin-bottom: 15px;">Resultaten</h3>
+            <div id="utility-results-content"></div>
+        </div>
+    </div>
+</div>
+
     </div>
 
-    {% block modals %}{% endblock %}
+    
 
-    {% block scripts %}
+    
+
     <script>
         // API Bridge: schakel tussen pywebview.api (standalone) en fetch (Flask)
         window.appApi = {
             // Lazy check voor pywebview.api (kan nog niet beschikbaar zijn bij initialisatie)
             _getApi: function() {
-                try {
-                    if (typeof window.pywebview !== 'undefined' && window.pywebview && window.pywebview.api) {
-                        const api = window.pywebview.api;
-                        // Debug: log beschikbare methods
-                        if (console && console.debug) {
-                            console.debug('pywebview.api beschikbaar, methods:', Object.keys(api));
-                        }
-                        return api;
-                    }
-                } catch (e) {
-                    console.error('Error accessing pywebview.api:', e);
-                }
-                // Debug: log als API niet beschikbaar is
-                if (console && console.debug) {
-                    console.debug('pywebview.api niet beschikbaar, gebruik fetch fallback');
+                if (typeof window.pywebview !== 'undefined' && window.pywebview.api) {
+                    return window.pywebview.api;
                 }
                 return null;
             },
@@ -340,15 +357,7 @@
             getCredentials: async function() {
                 const api = this._getApi();
                 if (api) {
-                    // Pywebview converteert snake_case naar camelCase, maar controleer beide
-                    if (typeof api.getCredentials === 'function') {
-                        return await api.getCredentials();
-                    } else if (typeof api.get_credentials === 'function') {
-                        return await api.get_credentials();
-                    } else {
-                        console.error('API methods available:', Object.keys(api));
-                        throw new Error('getCredentials method niet gevonden');
-                    }
+                    return await api.getCredentials();
                 }
                 const response = await fetch('/api/credentials');
                 return await response.json();
@@ -357,16 +366,7 @@
             saveCredentials: async function(service, data) {
                 const api = this._getApi();
                 if (api) {
-                    // Pywebview converteert snake_case naar camelCase, maar controleer beide
-                    if (typeof api.saveCredentials === 'function') {
-                        return await api.saveCredentials(service, data);
-                    } else if (typeof api.save_credentials === 'function') {
-                        // Fallback voor het geval pywebview de conversie niet doet
-                        return await api.save_credentials(service, data);
-                    } else {
-                        console.error('API methods available:', Object.keys(api));
-                        throw new Error('saveCredentials method niet gevonden in pywebview.api');
-                    }
+                    return await api.saveCredentials(service, data);
                 }
                 const response = await fetch(`/api/credentials/${service}`, {
                     method: 'POST',
@@ -379,20 +379,18 @@
             getRdpServers: async function() {
                 const api = this._getApi();
                 if (api) {
-                    if (typeof api.getRdpServers === 'function') return await api.getRdpServers();
-                    if (typeof api.get_rdp_servers === 'function') return await api.get_rdp_servers();
+                    return await api.getRdpServers();
                 }
-                const response = await fetch('/api/rdp/servers');
+                const response = await fetch('/api/rdp-servers');
                 return await response.json();
             },
             
             saveRdpServer: async function(data) {
                 const api = this._getApi();
                 if (api) {
-                    if (typeof api.addRdpServer === 'function') return await api.addRdpServer(data);
-                    if (typeof api.add_rdp_server === 'function') return await api.add_rdp_server(data);
+                    return await api.addRdpServer(data);
                 }
-                const response = await fetch('/api/rdp/servers', {
+                const response = await fetch('/api/rdp-servers', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(data)
@@ -403,10 +401,9 @@
             deleteRdpServer: async function(serverId) {
                 const api = this._getApi();
                 if (api) {
-                    if (typeof api.deleteRdpServer === 'function') return await api.deleteRdpServer(serverId);
-                    if (typeof api.delete_rdp_server === 'function') return await api.delete_rdp_server(serverId);
+                    return await api.deleteRdpServer(serverId);
                 }
-                const response = await fetch(`/api/rdp/servers/${serverId}`, {
+                const response = await fetch(`/api/rdp-servers/${serverId}`, {
                     method: 'DELETE'
                 });
                 return await response.json();
@@ -415,20 +412,18 @@
             getSshServers: async function() {
                 const api = this._getApi();
                 if (api) {
-                    if (typeof api.getSshServers === 'function') return await api.getSshServers();
-                    if (typeof api.get_ssh_servers === 'function') return await api.get_ssh_servers();
+                    return await api.getSshServers();
                 }
-                const response = await fetch('/api/ssh/servers');
+                const response = await fetch('/api/ssh-servers');
                 return await response.json();
             },
             
             saveSshServer: async function(data) {
                 const api = this._getApi();
                 if (api) {
-                    if (typeof api.addSshServer === 'function') return await api.addSshServer(data);
-                    if (typeof api.add_ssh_server === 'function') return await api.add_ssh_server(data);
+                    return await api.addSshServer(data);
                 }
-                const response = await fetch('/api/ssh/servers', {
+                const response = await fetch('/api/ssh-servers', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(data)
@@ -439,10 +434,9 @@
             deleteSshServer: async function(serverId) {
                 const api = this._getApi();
                 if (api) {
-                    if (typeof api.deleteSshServer === 'function') return await api.deleteSshServer(serverId);
-                    if (typeof api.delete_ssh_server === 'function') return await api.delete_ssh_server(serverId);
+                    return await api.deleteSshServer(serverId);
                 }
-                const response = await fetch(`/api/ssh/servers/${serverId}`, {
+                const response = await fetch(`/api/ssh-servers/${serverId}`, {
                     method: 'DELETE'
                 });
                 return await response.json();
@@ -451,7 +445,7 @@
             login: async function(service) {
                 const api = this._getApi();
                 if (api) {
-                    if (typeof api.login === 'function') return await api.login(service);
+                    return await api.login(service);
                 }
                 const response = await fetch(`/api/login/${service}`, {
                     method: 'POST'
@@ -459,39 +453,10 @@
                 return await response.json();
             },
             
-            connectRdp: async function(data) {
-                const api = this._getApi();
-                if (api) {
-                    if (typeof api.connectRdp === 'function') return await api.connectRdp(data);
-                    if (typeof api.connect_rdp === 'function') return await api.connect_rdp(data);
-                }
-                const response = await fetch('/api/rdp/connect', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(data)
-                });
-                return await response.json();
-            },
-            
-            connectSsh: async function(data) {
-                const api = this._getApi();
-                if (api) {
-                    if (typeof api.connectSsh === 'function') return await api.connectSsh(data);
-                    if (typeof api.connect_ssh === 'function') return await api.connect_ssh(data);
-                }
-                const response = await fetch('/api/ssh/connect', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(data)
-                });
-                return await response.json();
-            },
-            
             runUtility: async function(utility) {
                 const api = this._getApi();
                 if (api) {
-                    if (typeof api.runUtility === 'function') return await api.runUtility(utility);
-                    if (typeof api.run_utility === 'function') return await api.run_utility(utility);
+                    return await api.runUtility(utility);
                 }
                 const response = await fetch(`/api/utilities/${utility}`, {
                     method: 'POST'
@@ -502,8 +467,7 @@
             getDocumentationHtml: async function() {
                 const api = this._getApi();
                 if (api) {
-                    if (typeof api.getDocumentationHtml === 'function') return await api.getDocumentationHtml();
-                    if (typeof api.get_documentation_html === 'function') return await api.get_documentation_html();
+                    return await api.getDocumentationHtml();
                 }
                 const response = await fetch('/api/documentation');
                 return await response.text();
@@ -512,8 +476,7 @@
             getVersion: async function() {
                 const api = this._getApi();
                 if (api) {
-                    if (typeof api.getVersion === 'function') return await api.getVersion();
-                    if (typeof api.get_version === 'function') return await api.get_version();
+                    return await api.getVersion();
                 }
                 const response = await fetch('/api/version');
                 return await response.json();
@@ -547,6 +510,181 @@
             }
         }
     </script>
-    {% endblock %}
+    
+<script>
+    function showUtilityAlert(message, type = 'success') {
+        const container = document.getElementById('utility-alert-container');
+        container.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+        const alert = container.querySelector('.alert');
+        alert.style.display = 'block';
+        setTimeout(() => {
+            alert.style.display = 'none';
+        }, 10000);
+    }
+
+    async function runUtility(utility) {
+        const button = event.target;
+        const originalText = button.textContent;
+        button.disabled = true;
+        button.textContent = '⏳ Uitvoeren...';
+        
+        try {
+            const response = await fetch(`/api/utilities/${utility}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                showUtilityAlert(`✅ ${data.message}`, 'success');
+                displayResults(data);
+            } else {
+                showUtilityAlert(`❌ Fout: ${data.error || data.message}`, 'error');
+                if (data.results) {
+                    displayResults(data);
+                }
+            }
+        } catch (error) {
+            showUtilityAlert(`❌ Fout: ${error.message}`, 'error');
+        } finally {
+            button.disabled = false;
+            button.textContent = originalText;
+        }
+    }
+
+    function displayResults(data) {
+        const resultsDiv = document.getElementById('utility-results');
+        const contentDiv = document.getElementById('utility-results-content');
+        
+        resultsDiv.style.display = 'block';
+        
+        let html = '';
+        
+        if (data.utility === 'clean_credentials' && data.results) {
+            html += '<h4 style="color: #4a90a4; margin-top: 15px;">Clean Credentials Resultaten:</h4>';
+            data.results.forEach(([name, result]) => {
+                const icon = result.success ? '✅' : '❌';
+                const color = result.success ? '#28a745' : '#dc3545';
+                html += `<div style="padding: 10px; margin: 10px 0; background: white; border-radius: 8px; border-left: 4px solid ${color};">`;
+                html += `<strong>${icon} ${name}:</strong> ${result.message}`;
+                if (result.removed !== undefined) {
+                    html += ` (${result.removed} verwijderd)`;
+                }
+                if (result.servers_cleaned !== undefined && result.servers_cleaned > 0) {
+                    html += ` (${result.servers_cleaned} servers)`;
+                }
+                html += '</div>';
+            });
+        } else if (data.utility === 'migrate_key') {
+            html += '<h4 style="color: #4a90a4; margin-top: 15px;">Key File Migratie:</h4>';
+            const icon = data.result.success ? '✅' : '❌';
+            const color = data.result.success ? '#28a745' : '#dc3545';
+            html += `<div style="padding: 10px; margin: 10px 0; background: white; border-radius: 8px; border-left: 4px solid ${color};">`;
+            html += `<strong>${icon} ${data.result.message}</strong>`;
+            if (data.result.old_path) {
+                html += `<br><small style="color: #666;">Oude locatie: ${data.result.old_path}</small>`;
+            }
+            if (data.result.new_path) {
+                html += `<br><small style="color: #666;">Nieuwe locatie: ${data.result.new_path}</small>`;
+            }
+            html += '</div>';
+        } else if (data.utility === 'security_test' && data.results) {
+            html += '<h4 style="color: #4a90a4; margin-top: 15px;">Security Test Resultaten:</h4>';
+            
+            html += `<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 15px 0;">`;
+            html += `<div style="background: #28a745; color: white; padding: 15px; border-radius: 8px; text-align: center;">`;
+            html += `<div style="font-size: 2em; font-weight: bold;">${data.results.total_passed}</div>`;
+            html += `<div>Geslaagd</div>`;
+            html += `</div>`;
+            html += `<div style="background: #ffc107; color: #333; padding: 15px; border-radius: 8px; text-align: center;">`;
+            html += `<div style="font-size: 2em; font-weight: bold;">${data.results.total_warnings}</div>`;
+            html += `<div>Waarschuwingen</div>`;
+            html += `</div>`;
+            html += `<div style="background: #dc3545; color: white; padding: 15px; border-radius: 8px; text-align: center;">`;
+            html += `<div style="font-size: 2em; font-weight: bold;">${data.results.total_issues}</div>`;
+            html += `<div>Kritieke Problemen</div>`;
+            html += `</div>`;
+            html += `</div>`;
+            
+            if (data.results.passed && data.results.passed.length > 0) {
+                html += '<h5 style="color: #28a745; margin-top: 20px;">✅ Geslaagde Tests:</h5>';
+                data.results.passed.forEach(item => {
+                    html += `<div style="padding: 8px; margin: 5px 0; background: #d4edda; border-radius: 4px;">`;
+                    html += `<strong>${item.category}:</strong> ${item.message}`;
+                    html += '</div>';
+                });
+            }
+            
+            if (data.results.warnings && data.results.warnings.length > 0) {
+                html += '<h5 style="color: #ffc107; margin-top: 20px;">⚠️ Waarschuwingen:</h5>';
+                data.results.warnings.forEach(item => {
+                    html += `<div style="padding: 8px; margin: 5px 0; background: #fff3cd; border-radius: 4px; border-left: 4px solid #ffc107;">`;
+                    html += `<strong>${item.severity} - ${item.category}:</strong> ${item.message}`;
+                    if (item.recommendation) {
+                        html += `<br><small style="color: #666;">→ ${item.recommendation}</small>`;
+                    }
+                    html += '</div>';
+                });
+            }
+            
+            if (data.results.issues && data.results.issues.length > 0) {
+                html += '<h5 style="color: #dc3545; margin-top: 20px;">❌ Kritieke Problemen:</h5>';
+                data.results.issues.forEach(item => {
+                    html += `<div style="padding: 8px; margin: 5px 0; background: #f8d7da; border-radius: 4px; border-left: 4px solid #dc3545;">`;
+                    html += `<strong>${item.severity} - ${item.category}:</strong> ${item.message}`;
+                    if (item.recommendation) {
+                        html += `<br><small style="color: #666;">→ ${item.recommendation}</small>`;
+                    }
+                    html += '</div>';
+                });
+            }
+            
+            if (data.results.all_passed) {
+                html += '<div style="background: #d4edda; padding: 15px; border-radius: 8px; margin-top: 15px; border-left: 4px solid #28a745;">';
+                html += '<strong>✅ ALLE TESTS GESLAAGD - Geen beveiligingsproblemen gevonden!</strong>';
+                html += '</div>';
+            }
+        } else if (data.utility === 'clean_servers' && data.result) {
+            html += '<h4 style="color: #4a90a4; margin-top: 15px;">Clean Servers Resultaten:</h4>';
+            
+            if (data.result.rdp) {
+                const icon = data.result.rdp.success ? '✅' : '❌';
+                const color = data.result.rdp.success ? '#28a745' : '#dc3545';
+                html += `<div style="padding: 10px; margin: 10px 0; background: white; border-radius: 8px; border-left: 4px solid ${color};">`;
+                html += `<strong>${icon} RDP Servers:</strong> ${data.result.rdp.message}`;
+                if (data.result.rdp.servers_removed !== undefined && data.result.rdp.servers_removed > 0) {
+                    html += ` <span style="color: #dc3545; font-weight: bold;">(${data.result.rdp.servers_removed} server(s) verwijderd)</span>`;
+                }
+                html += '</div>';
+            }
+            
+            if (data.result.ssh) {
+                const icon = data.result.ssh.success ? '✅' : '❌';
+                const color = data.result.ssh.success ? '#28a745' : '#dc3545';
+                html += `<div style="padding: 10px; margin: 10px 0; background: white; border-radius: 8px; border-left: 4px solid ${color};">`;
+                html += `<strong>${icon} SSH Servers:</strong> ${data.result.ssh.message}`;
+                if (data.result.ssh.servers_removed !== undefined && data.result.ssh.servers_removed > 0) {
+                    html += ` <span style="color: #dc3545; font-weight: bold;">(${data.result.ssh.servers_removed} server(s) verwijderd)</span>`;
+                }
+                html += '</div>';
+            }
+            
+            if (data.result.total_removed !== undefined) {
+                html += `<div style="padding: 10px; margin: 10px 0; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">`;
+                html += `<strong>⚠️ Totaal:</strong> <strong style="color: #dc3545;">${data.result.total_removed} server(s) verwijderd</strong> uit de applicatie`;
+                html += '</div>';
+            }
+        }
+        
+        contentDiv.innerHTML = html;
+        
+        // Scroll naar resultaten
+        resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+</script>
+
 </body>
 </html>

@@ -13,6 +13,7 @@ SCRIPTS_DIR = Path(__file__).parent.parent.parent
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
+# Import gedeelde logica uit web_interface (zonder Flask app te starten)
 from src.web.web_interface import (
     APP_VERSION,
     SCRIPTS_DIR,
@@ -89,7 +90,8 @@ class DesktopAPI:
                 return {"success": False, "error": "Wachtwoord is verplicht"}
             credentials["google_admin"] = {"url": url, "email": email, "password": password}
         elif service == "easy4u":
-            url = sanitize_string(data.get("url", "https://my.easy4u.be/nl/login"))
+            # Altijd de officiële Nederlandse login-URL gebruiken (niet my.easy4u.be)
+            url = "https://easy4u.nl/admin/"
             email = sanitize_string(data.get("email", ""))
             password = data.get("password", "")
             if not validate_url(url):
@@ -152,7 +154,7 @@ class DesktopAPI:
         if not host:
             return {"success": False, "error": "Host is verplicht"}
         try:
-            from auto_rdp_sessions import _start_single_rdp
+            from src.auto_login.auto_rdp_sessions import _start_single_rdp
             _start_single_rdp(host, user, password)
             return {"success": True, "message": f"RDP connectie naar {host} gestart"}
         except Exception as e:
@@ -214,7 +216,7 @@ class DesktopAPI:
         if not host:
             return {"success": False, "error": "Host is verplicht"}
         try:
-            from auto_ssh_connect import start_ssh_connection
+            from src.auto_login.auto_ssh_connect import start_ssh_connection
             start_ssh_connection(host, user, port, key_file, password)
             return {"success": True, "message": f"SSH verbinding naar {host} gestart"}
         except Exception as e:
@@ -225,10 +227,10 @@ class DesktopAPI:
         if service not in valid:
             return {"success": False, "error": "Onbekende service"}
         try:
-            from auto_smartschool_login import login_smartschool_via_microsoft
-            from auto_microsoft_admin_login import login_microsoft_admin
-            from auto_google_admin_login import login_google_admin
-            from auto_easy4u_login import login_easy4u
+            from src.auto_login.auto_smartschool_login import login_smartschool_via_microsoft
+            from src.auto_login.auto_microsoft_admin_login import login_microsoft_admin
+            from src.auto_login.auto_google_admin_login import login_google_admin
+            from src.auto_login.auto_easy4u_login import login_easy4u
             funcs = {
                 "smartschool": login_smartschool_via_microsoft,
                 "microsoft_admin": login_microsoft_admin,
@@ -247,21 +249,21 @@ class DesktopAPI:
             return {"success": False, "error": "Onbekende utility"}
         try:
             if utility == "clean_credentials":
-                from clean_credentials import run_clean_all
+                from src.core.clean_credentials import run_clean_all
                 results = run_clean_all()
                 return {"success": True, "message": "Credentials opgeschoond", "utility": utility, "results": results}
             elif utility == "migrate_key":
-                from migrate_key_file import migrate_key_file
+                from src.core.migrate_key_file import migrate_key_file
                 result = migrate_key_file()
                 return {"success": result.get("success", False), "message": result.get("message", "Migratie voltooid"), "utility": utility, "result": result}
             elif utility == "security_test":
-                from security_test import SecurityTest
+                from src.core.security_test import SecurityTest
                 test = SecurityTest()
                 test.run_all_tests()
                 results = test.get_results()
                 return {"success": True, "message": f"Security test voltooid: {results['total_passed']} geslaagd, {results['total_problems']} problemen gevonden", "utility": utility, "results": results}
             elif utility == "clean_servers":
-                from clean_servers import clean_all_servers
+                from src.core.clean_servers import clean_all_servers
                 result = clean_all_servers()
                 return {"success": result.get("success", False), "message": result.get("message", "Servers opgeschoond"), "utility": utility, "result": result}
         except Exception as e:

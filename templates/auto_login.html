@@ -62,7 +62,10 @@
         btn.disabled = true;
 
         try {
-            const data = await window.appApi.login(service);
+            const response = await fetch(`/api/login/${service}`, {
+                method: 'POST',
+            });
+            const data = await response.json();
 
             if (data.success) {
                 showAlert(`✅ ${data.message}`, 'success');

@@ -44,14 +44,6 @@ ssh_servers.json
 *.spec
 release/
 dist/
-build/
-static_export/
-*.zip
-*.exe
-
-# PyInstaller
-*.spec
-*.manifest
 
 # OS
 .DS_Store
@@ -59,8 +51,3 @@ Thumbs.db
 
 # Logs
 *.log
-
-# Temporary files
-*.tmp
-*.bak
-*~

@@ -289,7 +289,7 @@ def sync_to_env(credentials: dict, env_file: Path, scripts_dir: Path) -> bool:
             env_lines.append(f"GOOGLE_ADMIN_URL={credentials['google_admin'].get('url', 'https://admin.google.com')}\n")
         
         if "easy4u" in credentials:
-            env_lines.append(f"EASY4U_URL={credentials['easy4u'].get('url', 'https://my.easy4u.be/nl/login')}\n")
+            env_lines.append(f"EASY4U_URL={credentials['easy4u'].get('url', 'https://easy4u.nl/admin/')}\n")
         
         # Schrijf .env terug (ZONDER wachtwoorden)
         with open(env_file, "w", encoding="utf-8") as f:

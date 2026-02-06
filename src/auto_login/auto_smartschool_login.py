@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 from pathlib import Path
 
@@ -8,9 +9,6 @@ from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-
-import sys
-from pathlib import Path
 
 # Add parent directory to path for imports
 SCRIPTS_DIR = Path(__file__).parent.parent.parent

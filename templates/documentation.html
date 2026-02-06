@@ -137,7 +137,7 @@
 <div class="section">
     <h2>📚 Documentatie</h2>
     
-    <div class="documentation-content" id="doc-content" {% if documentation_html %}data-loaded="1"{% endif %}>
+    <div class="documentation-content">
         {% if documentation_html %}
             {{ documentation_html|safe }}
         {% else %}
@@ -145,29 +145,4 @@
         {% endif %}
     </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-{{ super() }}
-<script>
-    (function() {
-        var el = document.getElementById('doc-content');
-        if (!el || el.dataset.loaded) return;
-        function load() {
-            if (!window.appApi || !window.appApi.getDocumentationHtml) {
-                setTimeout(load, 100);
-                return;
-            }
-            window.appApi.getDocumentationHtml().then(function(html) {
-                if (html && el) {
-                    el.innerHTML = html;
-                    el.dataset.loaded = '1';
-                }
-            }).catch(function() {
-                if (el) el.innerHTML = '<p>Documentatie kon niet worden geladen.</p>';
-            });
-        }
-        load();
-    })();
-</script>
 {% endblock %}

@@ -72,8 +72,8 @@ De tool ondersteunt automatische login voor de volgende services:
 
 ### Stap 1: Download en Extract
 
-1. Download of clone de repository
-2. Open een terminal/command prompt in de project root directory
+1. Download of clone de scripts directory
+2. Open een terminal/command prompt in de scripts directory
 
 ### Stap 2: Installeer Dependencies
 
@@ -81,20 +81,26 @@ De tool ondersteunt automatische login voor de volgende services:
 pip install -r requirements.txt
 ```
 
-Dit installeert:
-- `selenium` - Voor browser automation
+Dit installeert o.a.:
+- `selenium` - Voor browser automation (andere auto-logins)
+- `playwright` - Voor Easy4U auto-login (easy4u.nl)
 - `python-dotenv` - Voor environment variables
 - `flask` - Voor de web interface
 - `cryptography` - Voor encryptie van credentials
 - `markdown` - Voor documentatie weergave in web interface
 - `pyinstaller` - Voor het maken van een Windows executable
 
+**Easy4U:** Na de eerste `pip install` moet je één keer Chromium voor Playwright installeren:
+```bash
+playwright install chromium
+```
+
 ### Stap 2b: (Optioneel) Maak een Windows Executable
 
 Voor distributie als standalone Windows applicatie:
 
 ```bash
-scripts\build_exe.bat
+build_exe.bat
 ```
 
 Dit maakt een `SintMaartenCampusAutologin.exe` bestand in de `dist` folder.
@@ -102,20 +108,10 @@ Dit maakt een `SintMaartenCampusAutologin.exe` bestand in de `dist` folder.
 Voor een complete release package:
 
 ```bash
-scripts\package_release.bat
+package_release.bat
 ```
 
 Dit maakt een `release` folder met alle benodigde bestanden.
-
-### Stap 3: Installatie op Windows Device
-
-Zie `docs/INSTALLATIE.md` voor gedetailleerde installatie-instructies.
-
-**Kort overzicht:**
-1. Kopieer de `dist\SintMaartenCampusAutologin` folder naar je computer
-2. Dubbelklik op `SintMaartenCampusAutologin.exe` om te starten
-3. Open je browser en ga naar `http://127.0.0.1:5000`
-4. Configureer je credentials via de web interface
 - `markdown` - Voor documentatie weergave in web interface
 
 ### Stap 3: (Optioneel) Installeer PuTTY
@@ -161,17 +157,10 @@ Voor elke auto-login service moet je de volgende gegevens invullen:
 - **E-mail:** Je Google Workspace admin e-mail
 - **Wachtwoord:** Je Google wachtwoord (kan Microsoft SSO redirect vereisen)
 
-#### Easy4U (Portal Easy4u)
-- **URL:** `https://my.easy4u.be/nl/login` (standaard)
-- **E-mail:** Je gebruikersnaam of e-mail voor Portal Easy4u
+#### Easy4U
+- **URL:** Easy4U login URL (standaard: `https://easy4u.nl/admin/`)
+- **E-mail:** Je Easy4U e-mail adres
 - **Wachtwoord:** Je Easy4U wachtwoord
-
-### Bestandslocaties
-
-- **Bij normaal gebruik (Python):** credentials en serverbestanden staan in de projectmap.
-- **Bij gebruik van de .exe:** alle data staat in een persistente map zodat die behouden blijft:
-  - Windows: `%LOCALAPPDATA%\SintMaartenCampusAutologin\` (o.a. `credentials.json`, `.env`, `rdp_servers.json`, `ssh_servers.json`).
-- **Clean Credentials** en **Utilities** werken in dezelfde map, dus alle credentials worden correct opgeschoond.
 
 ### RDP Servers Toevoegen
 
@@ -448,23 +437,15 @@ Alle user input wordt gevalideerd en gesanitized:
 **Oplossingen:**
 1. De key wordt automatisch aangemaakt bij eerste gebruik
 2. Controleer bestandspermissies
-3. Voer `python src/core/migrate_key_file.py` uit als migratie nodig is
+3. Voer `python migrate_key_file.py` uit als migratie nodig is
 
 ### Probleem: Security test faalt
 
 **Oplossingen:**
-1. Voer `python src/core/security_test.py` uit om problemen te identificeren
+1. Voer `python security_test.py` uit om problemen te identificeren
 2. Of gebruik de Utilities pagina in de web interface om de security test uit te voeren
 3. Controleer of alle bestanden correct zijn geconfigureerd
 4. Controleer bestandspermissies
-
-### Waarschuwing: "Failed to remove temporary directory" (bij afsluiten .exe)
-
-**Wat het is:** Bij het sluiten van de desktop-app (.exe) probeert PyInstaller de tijdelijke map `C:\Users\...\AppData\Local\Temp\_MEI...` te verwijderen. Soms lukt dat niet (bestand nog in gebruik, antivirus).
-
-**Wat je kunt doen:**
-- **Negeer de melding** – de app is gewoon gesloten; je kunt op OK drukken. Eventuele restmap in Temp kun je later handmatig verwijderen.
-- **Optioneel:** Voeg een uitzondering toe voor de app in je antivirus, of sluit geen andere programma’s die bestanden in die map kunnen openen terwijl je de app afsluit.
 
 ### Probleem: Utilities scripts werken niet
 
@@ -497,7 +478,7 @@ Alle user input wordt gevalideerd en gesanitized:
 
 3. **Voer regelmatig security tests uit:**
    - Via web interface: Ga naar "Utilities" → "Security Test"
-   - Of via command line: `python src/core/security_test.py`
+   - Of via command line: `python security_test.py`
 
 3. **Gebruik master password voor extra beveiliging:**
    ```bash
@@ -517,7 +498,7 @@ Alle user input wordt gevalideerd en gesanitized:
 
 Voor vragen of problemen:
 1. Controleer deze documentatie
-2. Voer `python src/core/security_test.py` uit om beveiligingsproblemen te identificeren
+2. Voer `python security_test.py` uit om beveiligingsproblemen te identificeren
 3. Bekijk de terminal output voor error messages
 
 ## 📄 Licentie
@@ -526,19 +507,20 @@ Deze tool is ontwikkeld voor intern gebruik bij Sint-Maarten Campus.
 
 ---
 
-**Versie:** 1.0.4  
+**Versie:** 1.0.5  
 **Laatste update:** Februari 2026  
 **Auteur:** Wesley Van Hoof
 
 ### Changelog
 
-#### Versie 1.0.4 (Februari 2026)
-- ✅ Clean Credentials gebruikt nu dezelfde datamap als de app (werkt voor alle credentials, ook vanuit .exe)
-- ✅ Easy4U auto-login afgestemd op Portal Easy4u (my.easy4u.be/nl/login): Gebruikersnaam, Wachtwoord, knop Inloggen
-- ✅ Documentatie wordt direct meegenomen bij static export (geen laadstap meer)
-- ✅ Credentials en serverbestanden in persistente map bij .exe (AppData\Local\SintMaartenCampusAutologin)
-- ✅ Troubleshooting: waarschuwing "Failed to remove temporary directory" (_MEI) toegevoegd
-- ✅ Standalone desktop-modus: .exe gebruikt standaard geen Flask/localhost in browser
+#### Versie 1.0.5 (Februari 2026)
+- ✅ **Easy4U:** Auto-login overgezet naar Playwright voor betrouwbare invulling en klik op easy4u.nl
+- ✅ **Easy4U:** Standaard-URL en normalisatie naar `https://easy4u.nl/admin/` (voor iedereen)
+- ✅ **API-bridge:** Credentials, utilities en remote connections werken in desktop-app (pywebview + fetch-fallback)
+- ✅ **Routes:** Correcte API-routes (`/api/rdp/servers`, `/api/ssh/servers`, `/api/utilities/<name>`)
+- ✅ **Security test:** Imports en paden gefixt voor `src.core`; encryptie- en security-utils tests slagen
+- ✅ **Documentatie:** Playwright + `playwright install chromium` toegevoegd aan installatie-instructies
+- ✅ **Build:** js_api in Flask-modus doorgegeven zodat API in alle modi beschikbaar is
 
 #### Versie 1.0.3 (Februari 2026)
 - ✅ Clean Servers functionaliteit aangepast: verwijdert nu volledige servers (niet alleen wachtwoorden)

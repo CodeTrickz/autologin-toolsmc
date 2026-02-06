@@ -106,7 +106,7 @@ def main():
         static_export = SCRIPTS_DIR / "static_export"
         if not (static_export / "index.html").exists():
             try:
-                from export_static import export
+                from src.web.export_static import export
                 export()
             except Exception as e:
                 try:
@@ -127,8 +127,19 @@ def main():
             server_thread.start()
             url = f"http://127.0.0.1:{server_port}/index.html"
             time.sleep(0.3)
-            from desktop_api import DesktopAPI
+            from src.web.desktop_api import DesktopAPI
             api = DesktopAPI()
+            # Debug: print beschikbare methods
+            try:
+                methods = [m for m in dir(api) if not m.startswith('_') and callable(getattr(api, m))]
+                print("DesktopAPI methods:", methods)
+                # Test of save_credentials bestaat
+                if hasattr(api, 'save_credentials'):
+                    print("✓ save_credentials method exists")
+                else:
+                    print("✗ save_credentials method NOT found")
+            except Exception as e:
+                print(f"Error checking API methods: {e}")
             window = webview.create_window(
                 title,
                 url,
@@ -138,7 +149,7 @@ def main():
                 resizable=True,
                 js_api=api,
             )
-            webview.start(debug=False)
+            webview.start(debug=True)  # Enable debug voor betere error messages
             return
 
     # Normale modus: Flask op localhost + webview (geen aparte browser)
@@ -148,11 +159,15 @@ def main():
     if is_port_in_use(port):
         if WEBVIEW_AVAILABLE:
             try:
+                # Expose API ook wanneer poort al in gebruik is
+                from src.web.desktop_api import DesktopAPI
+                api = DesktopAPI()
                 window = webview.create_window(
                     title, url, width=1200, height=800,
-                    min_size=(900, 600), resizable=True
+                    min_size=(900, 600), resizable=True,
+                    js_api=api  # Expose Python API to JavaScript
                 )
-                webview.start(debug=False)
+                webview.start(debug=True)  # Enable debug voor betere error messages
                 return
             except Exception as e:
                 try:
@@ -172,11 +187,15 @@ def main():
 
     if WEBVIEW_AVAILABLE:
         try:
+            # Expose API ook in Flask modus
+            from src.web.desktop_api import DesktopAPI
+            api = DesktopAPI()
             window = webview.create_window(
                 title, url, width=1200, height=800,
-                min_size=(900, 600), resizable=True
+                min_size=(900, 600), resizable=True,
+                js_api=api  # Expose Python API to JavaScript
             )
-            webview.start(debug=False)
+            webview.start(debug=True)  # Enable debug voor betere error messages
         except Exception as e:
             try:
                 print(f"Fout bij starten webview: {e}")
