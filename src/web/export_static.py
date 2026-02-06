@@ -4,9 +4,16 @@ Gebruik: python export_static.py
 Output: static_export/ met index.html, credentials.html, etc.
 Documentatie wordt direct meegenomen (geen laadstap).
 """
+import sys
 import html as html_module
 from pathlib import Path
-from web_interface import app, APP_VERSION, SCRIPTS_DIR
+
+# Add parent directory to path for imports
+SCRIPTS_DIR = Path(__file__).parent.parent.parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
+from src.web.web_interface import app, APP_VERSION
 
 OUTPUT_DIR = Path(__file__).parent / "static_export"
 

@@ -24,11 +24,13 @@ if sys.platform == 'win32':
     except Exception:
         pass
 
-# Import Flask app en versie
-from web_interface import app, APP_VERSION
+# Add parent directory to path for imports
+SCRIPTS_DIR = Path(__file__).parent.parent.parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
 
-# Pad naar de scripts directory
-SCRIPTS_DIR = Path(__file__).parent
+# Import Flask app en versie
+from src.web.web_interface import app, APP_VERSION
 
 # Laad .env
 load_dotenv()

@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import html
 import threading
@@ -6,14 +7,19 @@ from pathlib import Path
 from flask import Flask, render_template, jsonify, request
 from dotenv import load_dotenv
 
+# Add parent directory to path for imports
+SCRIPTS_DIR = Path(__file__).parent.parent.parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
 # Import login modules
-from auto_smartschool_login import login_smartschool_via_microsoft
-from auto_microsoft_admin_login import login_microsoft_admin
-from auto_google_admin_login import login_google_admin
-from auto_easy4u_login import login_easy4u
+from src.auto_login.auto_smartschool_login import login_smartschool_via_microsoft
+from src.auto_login.auto_microsoft_admin_login import login_microsoft_admin
+from src.auto_login.auto_google_admin_login import login_google_admin
+from src.auto_login.auto_easy4u_login import login_easy4u
 
 # Import credentials manager
-from credentials_manager import (
+from src.core.credentials_manager import (
     get_data_dir,
     load_encrypted_credentials,
     save_encrypted_credentials,
@@ -21,7 +27,7 @@ from credentials_manager import (
 )
 
 # Import security utilities
-from security_utils import (
+from src.core.security_utils import (
     sanitize_string,
     validate_email,
     validate_url,

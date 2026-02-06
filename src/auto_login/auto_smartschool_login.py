@@ -9,14 +9,27 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-from credentials_manager import get_credential, get_data_dir
+import sys
+from pathlib import Path
+
+# Add parent directory to path for imports
+SCRIPTS_DIR = Path(__file__).parent.parent.parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
+from src.core.credentials_manager import get_credential, get_data_dir
 
 DATA_DIR = get_data_dir()
 CREDENTIALS_FILE = DATA_DIR / "credentials.json"
 
+SMARTSCHOOL_URL = os.environ.get(
+    "SMARTSCHOOL_URL",
+    "https://sintmaartencampus.smartschool.be/login",
+)
+
 
 def get_credential_or_fail(service: str, field: str) -> str:
-    """Haal credential op uit encrypted storage (gebruikt persistente datamap bij .exe)."""
+    """Haal credential op uit encrypted storage."""
     value = get_credential(service, field, DATA_DIR, CREDENTIALS_FILE)
     if not value or value.strip() == "":
         raise RuntimeError(
@@ -37,30 +50,46 @@ def create_driver() -> webdriver.Chrome:
     return driver
 
 
-def login_microsoft_admin() -> None:
-    """
-    Log automatisch in op Microsoft 365 Admin Center.
-
-    Config in .env:
-    MS_ADMIN_URL=https://admin.microsoft.com (of andere URL)
-    MS_ADMIN_EMAIL=jouw.admin@example.com
-    MS_ADMIN_PASSWORD=JOUW_WACHTWOORD
-    """
+def login_smartschool_via_microsoft() -> None:
     load_dotenv()
 
-    admin_url = get_credential_or_fail("microsoft_admin", "url") or "https://admin.microsoft.com"
-    ms_email = get_credential_or_fail("microsoft_admin", "email")
-    ms_password = get_credential_or_fail("microsoft_admin", "password")
+    ms_email = get_credential_or_fail("smartschool", "email")
+    ms_password = get_credential_or_fail("smartschool", "password")
 
     driver = create_driver()
 
     try:
         wait = WebDriverWait(driver, 30)
 
-        # 1. Ga naar Microsoft Admin Center (of andere URL uit .env)
-        driver.get(admin_url)
+        # 1. Ga naar Smartschool loginpagina
+        driver.get(SMARTSCHOOL_URL)
 
-        # 2. Microsoft login: e‑mail invullen
+        # 2. Klik op "Microsoft" login knop
+        # Probeer verschillende selectors (kan afhankelijk zijn van de HTML)
+        microsoft_button = None
+        selector_attempts = [
+            (By.XPATH, "//a[contains(., 'Microsoft')]"),
+            (By.XPATH, "//button[contains(., 'Microsoft')]"),
+            (By.XPATH, "//*[contains(., 'Microsoft') and (self::a or self::button)]"),
+        ]
+
+        for by, selector in selector_attempts:
+            try:
+                microsoft_button = wait.until(
+                    EC.element_to_be_clickable((by, selector))
+                )
+                break
+            except Exception:
+                continue
+
+        if not microsoft_button:
+            raise RuntimeError(
+                "Kon de Microsoft-aanmeldknop op Smartschool niet vinden."
+            )
+
+        microsoft_button.click()
+
+        # 3. Microsoft login: e‑mail invullen
         # Wacht tot het veld echt klikbaar is (niet alleen "aanwezig") om InvalidElementState te vermijden
         email_input = wait.until(
             EC.element_to_be_clickable((By.NAME, "loginfmt"))
@@ -72,7 +101,7 @@ def login_microsoft_admin() -> None:
         )
         next_btn.click()
 
-        # 3. Wacht op wachtwoordveld
+        # 4. Wacht op wachtwoordveld
         password_input = wait.until(
             EC.element_to_be_clickable((By.NAME, "passwd"))
         )
@@ -83,7 +112,7 @@ def login_microsoft_admin() -> None:
         )
         signin_btn.click()
 
-        # 4. Eventueel 'Blijf aangemeld?' bevestigen
+        # 5. Eventueel 'Blijf aangemeld?' bevestigen (dit mag nog automatisch)
         try:
             stay_signed_in_btn = WebDriverWait(driver, 15).until(
                 EC.element_to_be_clickable((By.ID, "idBtn_Back"))
@@ -101,18 +130,17 @@ def login_microsoft_admin() -> None:
             # Geen 'Blijf aangemeld?'-scherm, ga verder
             pass
 
-        # 5. Wacht tot je op admin.microsoft.com bent (of 2FA-scherm)
+        # 6. Wacht tot je terug op Smartschool zit (2FA-scherm)
         try:
             WebDriverWait(driver, 60).until(
-                lambda d: "admin.microsoft.com" in d.current_url or "microsoft.com" in d.current_url
+                EC.url_contains("smartschool.be")
             )
         except Exception:
             # Ook als we de URL niet goed kunnen detecteren, de browser blijft toch open
             pass
 
-        # 6. Houd het script actief zodat de browser niet automatisch wordt gesloten.
-        print("Microsoft Admin login voltooid. Browser blijft open; sluit dit venster of stop het script om ook de browser te sluiten.")
-        print("Als er 2FA vereist is, vul die nu handmatig in.")
+        # 7. Houd het script actief zodat de browser niet automatisch wordt gesloten.
+        print("Smartschool/Microsoft login voltooid. Browser blijft open; sluit dit venster of stop het script om ook de browser te sluiten.")
         while True:
             time.sleep(3600)
 
@@ -124,4 +152,5 @@ def login_microsoft_admin() -> None:
 
 
 if __name__ == "__main__":
-    login_microsoft_admin()
+    login_smartschool_via_microsoft()
+

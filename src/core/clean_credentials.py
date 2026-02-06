@@ -7,7 +7,15 @@ import os
 import json
 from pathlib import Path
 
-from credentials_manager import get_data_dir
+import sys
+from pathlib import Path
+
+# Add parent directory to path for imports
+SCRIPTS_DIR = Path(__file__).parent.parent.parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
+from src.core.credentials_manager import get_data_dir
 
 # Zelfde mappen als de app (bij .exe: AppData\Local\SintMaartenCampusAutologin)
 DATA_DIR = get_data_dir()

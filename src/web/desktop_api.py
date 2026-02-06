@@ -4,11 +4,16 @@ Wordt via pywebview js_api aan de frontend geëxposeerd.
 Alle methodes retourneren dezelfde structuur als de Flask API (dict).
 """
 import json
+import sys
 import threading
 from pathlib import Path
 
-# Import gedeelde logica uit web_interface (zonder Flask app te starten)
-from web_interface import (
+# Add parent directory to path for imports
+SCRIPTS_DIR = Path(__file__).parent.parent.parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
+from src.web.web_interface import (
     APP_VERSION,
     SCRIPTS_DIR,
     load_rdp_servers,
@@ -18,7 +23,7 @@ from web_interface import (
     load_credentials,
     save_credentials,
 )
-from security_utils import (
+from src.core.security_utils import (
     sanitize_string,
     validate_email,
     validate_url,
