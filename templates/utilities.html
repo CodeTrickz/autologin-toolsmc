@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Utilities{% endblock %}
+
+{% block content %}
+<div class="section">
+    <h2>🔧 Utilities</h2>
+    <p style="color: #666; margin-bottom: 20px;">Voer utility scripts uit om het systeem te onderhouden en te testen.</p>
+    
+    <div class="buttons-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+        <button class="btn btn-login" onclick="runUtility('clean_credentials')" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);">
+            🧹 Clean Credentials
+        </button>
+        <button class="btn btn-login" onclick="runUtility('migrate_key')" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);">
+            🔄 Migrate Key File
+        </button>
+        <button class="btn btn-login" onclick="runUtility('security_test')" style="background: linear-gradient(135deg, #28a745 0%, #218838 100%);">
+            🔒 Security Test
+        </button>
+        <button class="btn btn-login" onclick="runUtility('clean_servers')" style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);">
+            🗑️ Clean Servers
+        </button>
+    </div>
+    
+    <div id="utility-alert-container" style="margin-top: 20px;"></div>
+    
+    <div id="utility-results" style="margin-top: 20px; display: none;">
+        <div class="section" style="background: #f8f9fa;">
+            <h3 style="color: #2d8659; margin-bottom: 15px;">Resultaten</h3>
+            <div id="utility-results-content"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    function showUtilityAlert(message, type = 'success') {
+        const container = document.getElementById('utility-alert-container');
+        container.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+        const alert = container.querySelector('.alert');
+        alert.style.display = 'block';
+        setTimeout(() => {
+            alert.style.display = 'none';
+        }, 10000);
+    }
+
+    async function runUtility(utility) {
+        const button = event.target;
+        const originalText = button.textContent;
+        button.disabled = true;
+        button.textContent = '⏳ Uitvoeren...';
+        
+        try {
+            const data = await window.appApi.runUtility(utility);
+            
+            if (data.success) {
+                showUtilityAlert(`✅ ${data.message}`, 'success');
+                displayResults(data);
+            } else {
+                showUtilityAlert(`❌ Fout: ${data.error || data.message}`, 'error');
+                if (data.results) {
+                    displayResults(data);
+                }
+            }
+        } catch (error) {
+            showUtilityAlert(`❌ Fout: ${error.message}`, 'error');
+        } finally {
+            button.disabled = false;
+            button.textContent = originalText;
+        }
+    }
+
+    function displayResults(data) {
+        const resultsDiv = document.getElementById('utility-results');
+        const contentDiv = document.getElementById('utility-results-content');
+        
+        resultsDiv.style.display = 'block';
+        
+        let html = '';
+        
+        if (data.utility === 'clean_credentials' && data.results) {
+            html += '<h4 style="color: #4a90a4; margin-top: 15px;">Clean Credentials Resultaten:</h4>';
+            data.results.forEach(([name, result]) => {
+                const icon = result.success ? '✅' : '❌';
+                const color = result.success ? '#28a745' : '#dc3545';
+                html += `<div style="padding: 10px; margin: 10px 0; background: white; border-radius: 8px; border-left: 4px solid ${color};">`;
+                html += `<strong>${icon} ${name}:</strong> ${result.message}`;
+                if (result.removed !== undefined) {
+                    html += ` (${result.removed} verwijderd)`;
+                }
+                if (result.servers_cleaned !== undefined && result.servers_cleaned > 0) {
+                    html += ` (${result.servers_cleaned} servers)`;
+                }
+                html += '</div>';
+            });
+        } else if (data.utility === 'migrate_key') {
+            html += '<h4 style="color: #4a90a4; margin-top: 15px;">Key File Migratie:</h4>';
+            const icon = data.result.success ? '✅' : '❌';
+            const color = data.result.success ? '#28a745' : '#dc3545';
+            html += `<div style="padding: 10px; margin: 10px 0; background: white; border-radius: 8px; border-left: 4px solid ${color};">`;
+            html += `<strong>${icon} ${data.result.message}</strong>`;
+            if (data.result.old_path) {
+                html += `<br><small style="color: #666;">Oude locatie: ${data.result.old_path}</small>`;
+            }
+            if (data.result.new_path) {
+                html += `<br><small style="color: #666;">Nieuwe locatie: ${data.result.new_path}</small>`;
+            }
+            html += '</div>';
+        } else if (data.utility === 'security_test' && data.results) {
+            html += '<h4 style="color: #4a90a4; margin-top: 15px;">Security Test Resultaten:</h4>';
+            
+            html += `<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 15px 0;">`;
+            html += `<div style="background: #28a745; color: white; padding: 15px; border-radius: 8px; text-align: center;">`;
+            html += `<div style="font-size: 2em; font-weight: bold;">${data.results.total_passed}</div>`;
+            html += `<div>Geslaagd</div>`;
+            html += `</div>`;
+            html += `<div style="background: #ffc107; color: #333; padding: 15px; border-radius: 8px; text-align: center;">`;
+            html += `<div style="font-size: 2em; font-weight: bold;">${data.results.total_warnings}</div>`;
+            html += `<div>Waarschuwingen</div>`;
+            html += `</div>`;
+            html += `<div style="background: #dc3545; color: white; padding: 15px; border-radius: 8px; text-align: center;">`;
+            html += `<div style="font-size: 2em; font-weight: bold;">${data.results.total_issues}</div>`;
+            html += `<div>Kritieke Problemen</div>`;
+            html += `</div>`;
+            html += `</div>`;
+            
+            if (data.results.passed && data.results.passed.length > 0) {
+                html += '<h5 style="color: #28a745; margin-top: 20px;">✅ Geslaagde Tests:</h5>';
+                data.results.passed.forEach(item => {
+                    html += `<div style="padding: 8px; margin: 5px 0; background: #d4edda; border-radius: 4px;">`;
+                    html += `<strong>${item.category}:</strong> ${item.message}`;
+                    html += '</div>';
+                });
+            }
+            
+            if (data.results.warnings && data.results.warnings.length > 0) {
+                html += '<h5 style="color: #ffc107; margin-top: 20px;">⚠️ Waarschuwingen:</h5>';
+                data.results.warnings.forEach(item => {
+                    html += `<div style="padding: 8px; margin: 5px 0; background: #fff3cd; border-radius: 4px; border-left: 4px solid #ffc107;">`;
+                    html += `<strong>${item.severity} - ${item.category}:</strong> ${item.message}`;
+                    if (item.recommendation) {
+                        html += `<br><small style="color: #666;">→ ${item.recommendation}</small>`;
+                    }
+                    html += '</div>';
+                });
+            }
+            
+            if (data.results.issues && data.results.issues.length > 0) {
+                html += '<h5 style="color: #dc3545; margin-top: 20px;">❌ Kritieke Problemen:</h5>';
+                data.results.issues.forEach(item => {
+                    html += `<div style="padding: 8px; margin: 5px 0; background: #f8d7da; border-radius: 4px; border-left: 4px solid #dc3545;">`;
+                    html += `<strong>${item.severity} - ${item.category}:</strong> ${item.message}`;
+                    if (item.recommendation) {
+                        html += `<br><small style="color: #666;">→ ${item.recommendation}</small>`;
+                    }
+                    html += '</div>';
+                });
+            }
+            
+            if (data.results.all_passed) {
+                html += '<div style="background: #d4edda; padding: 15px; border-radius: 8px; margin-top: 15px; border-left: 4px solid #28a745;">';
+                html += '<strong>✅ ALLE TESTS GESLAAGD - Geen beveiligingsproblemen gevonden!</strong>';
+                html += '</div>';
+            }
+        } else if (data.utility === 'clean_servers' && data.result) {
+            html += '<h4 style="color: #4a90a4; margin-top: 15px;">Clean Servers Resultaten:</h4>';
+            
+            if (data.result.rdp) {
+                const icon = data.result.rdp.success ? '✅' : '❌';
+                const color = data.result.rdp.success ? '#28a745' : '#dc3545';
+                html += `<div style="padding: 10px; margin: 10px 0; background: white; border-radius: 8px; border-left: 4px solid ${color};">`;
+                html += `<strong>${icon} RDP Servers:</strong> ${data.result.rdp.message}`;
+                if (data.result.rdp.servers_removed !== undefined && data.result.rdp.servers_removed > 0) {
+                    html += ` <span style="color: #dc3545; font-weight: bold;">(${data.result.rdp.servers_removed} server(s) verwijderd)</span>`;
+                }
+                html += '</div>';
+            }
+            
+            if (data.result.ssh) {
+                const icon = data.result.ssh.success ? '✅' : '❌';
+                const color = data.result.ssh.success ? '#28a745' : '#dc3545';
+                html += `<div style="padding: 10px; margin: 10px 0; background: white; border-radius: 8px; border-left: 4px solid ${color};">`;
+                html += `<strong>${icon} SSH Servers:</strong> ${data.result.ssh.message}`;
+                if (data.result.ssh.servers_removed !== undefined && data.result.ssh.servers_removed > 0) {
+                    html += ` <span style="color: #dc3545; font-weight: bold;">(${data.result.ssh.servers_removed} server(s) verwijderd)</span>`;
+                }
+                html += '</div>';
+            }
+            
+            if (data.result.total_removed !== undefined) {
+                html += `<div style="padding: 10px; margin: 10px 0; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">`;
+                html += `<strong>⚠️ Totaal:</strong> <strong style="color: #dc3545;">${data.result.total_removed} server(s) verwijderd</strong> uit de applicatie`;
+                html += '</div>';
+            }
+        }
+        
+        contentDiv.innerHTML = html;
+        
+        // Scroll naar resultaten
+        resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+</script>
+{% endblock %}

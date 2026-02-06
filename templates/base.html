@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sint Maarten Campus Autologin Tool{% endblock %}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #4a90a4 0%, #5fb3a8 50%, #7bc4a0 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .nav {
+            background: white;
+            border-radius: 15px;
+            padding: 15px 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .nav a {
+            padding: 10px 20px;
+            text-decoration: none;
+            color: #2d8659;
+            font-weight: bold;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .nav a:hover, .nav a.active {
+            background: linear-gradient(135deg, #2d8659 0%, #5fb3a8 100%);
+            color: white;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .app-version {
+            font-size: 0.5em;
+            opacity: 0.9;
+            font-weight: normal;
+            vertical-align: middle;
+        }
+
+        .section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .section h2 {
+            color: #2d8659;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            border-bottom: 2px solid #2d8659;
+            padding-bottom: 10px;
+        }
+
+        .buttons-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-login {
+            background: linear-gradient(135deg, #2d8659 0%, #5fb3a8 100%);
+        }
+
+        .btn-login:hover {
+            background: linear-gradient(135deg, #5fb3a8 0%, #2d8659 100%);
+        }
+
+        .btn-rdp {
+            background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
+        }
+
+        .btn-rdp:hover {
+            background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+        }
+
+        .btn-add {
+            background: linear-gradient(135deg, #4a90a4 0%, #5fb3a8 100%);
+        }
+
+        .btn-add:hover {
+            background: linear-gradient(135deg, #5fb3a8 0%, #4a90a4 100%);
+        }
+
+        .btn-delete {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            padding: 8px 15px;
+            font-size: 0.85em;
+        }
+
+        .btn-delete:hover {
+            background: linear-gradient(135deg, #fee140 0%, #fa709a 100%);
+        }
+
+        .rdp-server, .ssh-server {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .rdp-server:hover, .ssh-server:hover {
+            border-color: #2d8659;
+            box-shadow: 0 3px 10px rgba(45, 134, 89, 0.2);
+        }
+
+        .rdp-server-info, .ssh-server-info {
+            flex: 1;
+        }
+
+        .rdp-server-name, .ssh-server-name {
+            font-weight: bold;
+            color: #333;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+        .rdp-server-details, .ssh-server-details {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .rdp-server-actions, .ssh-server-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            animation: slideDown 0.3s;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            color: #2d8659;
+            font-size: 1.5em;
+        }
+
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #2d8659;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="container">
+        <h1>🏫 Sint Maarten Campus Autologin Tool {% if app_version %}<span class="app-version">v{{ app_version }}</span>{% endif %}</h1>
+        
+        <nav class="nav">
+            <a href="{% if base_href %}{{ base_href }}index.html{% else %}/{% endif %}" id="nav-home">🏠 Home</a>
+            <a href="{% if base_href %}{{ base_href }}auto_login.html{% else %}/auto-login{% endif %}" id="nav-auto-login">🌐 Auto Login</a>
+            <a href="{% if base_href %}{{ base_href }}credentials.html{% else %}/credentials{% endif %}" id="nav-credentials">🔐 Credentials</a>
+            <a href="{% if base_href %}{{ base_href }}remote_connections.html{% else %}/remote-connections{% endif %}" id="nav-remote">🖥️ Remote Connections</a>
+            <a href="{% if base_href %}{{ base_href }}utilities.html{% else %}/utilities{% endif %}" id="nav-utilities">🔧 Utilities</a>
+            <a href="{% if base_href %}{{ base_href }}documentation.html{% else %}/documentation{% endif %}" id="nav-documentation">📚 Documentatie</a>
+        </nav>
+
+        {% block content %}{% endblock %}
+    </div>
+
+    {% block modals %}{% endblock %}
+
+    {% block scripts %}
+    <script>
+        // API-bridge: controle bij elke aanroep (pywebview kan pas na laden beschikbaar zijn)
+        (function() {
+            function hasDesktopApi() { return typeof pywebview !== 'undefined' && pywebview.api; }
+            window.appApi = {
+                getCredentials: () => hasDesktopApi() ? pywebview.api.get_credentials() : fetch('/api/credentials').then(r => r.json()),
+                saveCredentials: (service, data) => hasDesktopApi() ? pywebview.api.save_credentials(service, data) : fetch('/api/credentials/' + service, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),
+                getRdpServers: () => hasDesktopApi() ? pywebview.api.get_rdp_servers() : fetch('/api/rdp/servers').then(r => r.json()),
+                addRdpServer: (data) => hasDesktopApi() ? pywebview.api.add_rdp_server(data) : fetch('/api/rdp/servers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),
+                deleteRdpServer: (id) => hasDesktopApi() ? pywebview.api.delete_rdp_server(id) : fetch('/api/rdp/servers/' + id, { method: 'DELETE' }).then(r => r.json()),
+                connectRdp: (data) => hasDesktopApi() ? pywebview.api.connect_rdp(data) : fetch('/api/rdp/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),
+                getSshServers: () => hasDesktopApi() ? pywebview.api.get_ssh_servers() : fetch('/api/ssh/servers').then(r => r.json()),
+                addSshServer: (data) => hasDesktopApi() ? pywebview.api.add_ssh_server(data) : fetch('/api/ssh/servers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),
+                deleteSshServer: (id) => hasDesktopApi() ? pywebview.api.delete_ssh_server(id) : fetch('/api/ssh/servers/' + id, { method: 'DELETE' }).then(r => r.json()),
+                connectSsh: (data) => hasDesktopApi() ? pywebview.api.connect_ssh(data) : fetch('/api/ssh/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),
+                login: (service) => hasDesktopApi() ? pywebview.api.login(service) : fetch('/api/login/' + service, { method: 'POST' }).then(r => r.json()),
+                runUtility: (utility) => hasDesktopApi() ? pywebview.api.run_utility(utility) : fetch('/api/utilities/' + utility, { method: 'POST' }).then(r => r.json()),
+                getVersion: () => hasDesktopApi() ? pywebview.api.get_version() : fetch('/api/version').then(r => r.json()),
+                getDocumentationHtml: () => hasDesktopApi() ? pywebview.api.get_documentation_html() : Promise.resolve('')
+            };
+        })();
+        // Markeer actieve navigatie link (werk voor zowel /path als file:///.../page.html)
+        const currentPath = window.location.pathname;
+        const currentFile = currentPath.split('/').pop() || 'index.html';
+        const navLinks = {
+            '/': 'nav-home', 'index.html': 'nav-home',
+            '/auto-login': 'nav-auto-login', 'auto_login.html': 'nav-auto-login',
+            '/credentials': 'nav-credentials', 'credentials.html': 'nav-credentials',
+            '/remote-connections': 'nav-remote', 'remote_connections.html': 'nav-remote',
+            '/utilities': 'nav-utilities', 'utilities.html': 'nav-utilities',
+            '/documentation': 'nav-documentation', 'documentation.html': 'nav-documentation'
+        };
+        const activeNavId = navLinks[currentPath] || navLinks[currentFile];
+        if (activeNavId) document.getElementById(activeNavId).classList.add('active');
+    </script>
+    {% endblock %}
+</body>
+</html>

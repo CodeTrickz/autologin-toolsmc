@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Auto Login{% endblock %}
+
+{% block content %}
+<div class="section">
+    <h2>🌐 Auto Login</h2>
+    <p style="color: #666; margin-bottom: 20px;">Klik op een knop om automatisch in te loggen op de betreffende service.</p>
+    <div class="buttons-grid">
+        <button class="btn btn-login" onclick="startLogin('smartschool')">
+            📚 Smartschool
+        </button>
+        <button class="btn btn-login" onclick="startLogin('microsoft_admin')">
+            🔷 Microsoft Admin
+        </button>
+        <button class="btn btn-login" onclick="startLogin('google_admin')">
+            🔍 Google Admin
+        </button>
+        <button class="btn btn-login" onclick="startLogin('easy4u')">
+            💼 Easy4U
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    function showAlert(message, type = 'success') {
+        // Maak een alert container als die niet bestaat
+        let container = document.getElementById('alert-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'alert-container';
+            container.style.position = 'fixed';
+            container.style.top = '20px';
+            container.style.right = '20px';
+            container.style.zIndex = '9999';
+            document.body.appendChild(container);
+        }
+        
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type}`;
+        alert.textContent = message;
+        alert.style.display = 'block';
+        alert.style.padding = '15px';
+        alert.style.borderRadius = '8px';
+        alert.style.marginBottom = '10px';
+        alert.style.minWidth = '300px';
+        container.appendChild(alert);
+        
+        setTimeout(() => {
+            alert.style.display = 'none';
+            alert.remove();
+        }, 5000);
+    }
+
+    async function startLogin(service) {
+        const btn = event.target;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span class="loading"></span> Starten...';
+        btn.disabled = true;
+
+        try {
+            const data = await window.appApi.login(service);
+
+            if (data.success) {
+                showAlert(`✅ ${data.message}`, 'success');
+            } else {
+                showAlert(`❌ Fout: ${data.error}`, 'error');
+            }
+        } catch (error) {
+            showAlert(`❌ Fout: ${error.message}`, 'error');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,375 @@
+{% extends "base.html" %}
+
+{% block title %}Remote Connections{% endblock %}
+
+{% block content %}
+<!-- RDP Servers Sectie -->
+<div class="section">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0; border: none; padding: 0;">🖥️ RDP Servers</h2>
+        <button class="btn btn-add" onclick="openAddRdpServerModal()">
+            ➕ Server Toevoegen
+        </button>
+    </div>
+    <div id="rdp-servers-list">
+        <!-- RDP servers worden hier dynamisch geladen -->
+    </div>
+</div>
+
+<!-- SSH Servers Sectie -->
+<div class="section">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0; border: none; padding: 0;">🔐 SSH Servers</h2>
+        <button class="btn btn-add" onclick="openAddSshServerModal()">
+            ➕ Server Toevoegen
+        </button>
+    </div>
+    <div id="ssh-servers-list">
+        <!-- SSH servers worden hier dynamisch geladen -->
+    </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<!-- Modal voor nieuwe RDP server toevoegen -->
+<div id="addRdpServerModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Nieuwe RDP Server</h3>
+            <span class="close" onclick="closeAddRdpServerModal()">&times;</span>
+        </div>
+        <div id="rdp-alert-container"></div>
+        <form id="add-rdp-server-form" onsubmit="addRdpServer(event)">
+            <div class="form-group">
+                <label for="rdp-server-name">Naam:</label>
+                <input type="text" id="rdp-server-name" placeholder="Bijv. Server 1" required>
+            </div>
+            <div class="form-group">
+                <label for="rdp-server-host">Host (IP of hostname):</label>
+                <input type="text" id="rdp-server-host" placeholder="192.168.1.100 of server.example.com" required>
+            </div>
+            <div class="form-group">
+                <label for="rdp-server-user">Gebruikersnaam (optioneel):</label>
+                <input type="text" id="rdp-server-user" placeholder="DOMAIN\user of user@domain.com">
+            </div>
+            <div class="form-group">
+                <label for="rdp-server-password">Wachtwoord (optioneel):</label>
+                <input type="password" id="rdp-server-password" placeholder="Wachtwoord">
+            </div>
+            <button type="submit" class="btn btn-add" style="width: 100%;">
+                ➕ Server Toevoegen
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Modal voor nieuwe SSH server toevoegen -->
+<div id="addSshServerModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Nieuwe SSH Server</h3>
+            <span class="close" onclick="closeAddSshServerModal()">&times;</span>
+        </div>
+        <div id="ssh-alert-container"></div>
+        <form id="add-ssh-server-form" onsubmit="addSshServer(event)">
+            <div class="form-group">
+                <label for="ssh-server-name">Naam:</label>
+                <input type="text" id="ssh-server-name" placeholder="Bijv. Linux Server" required>
+            </div>
+            <div class="form-group">
+                <label for="ssh-server-host">Host (IP of hostname):</label>
+                <input type="text" id="ssh-server-host" placeholder="192.168.1.100 of server.example.com" required>
+            </div>
+            <div class="form-group">
+                <label for="ssh-server-user">Gebruikersnaam (optioneel):</label>
+                <input type="text" id="ssh-server-user" placeholder="root of admin">
+            </div>
+            <div class="form-group">
+                <label for="ssh-server-port">Poort (standaard 22):</label>
+                <input type="number" id="ssh-server-port" placeholder="22" value="22" min="1" max="65535">
+            </div>
+            <div class="form-group">
+                <label for="ssh-server-key">Private Key bestand (optioneel):</label>
+                <input type="text" id="ssh-server-key" placeholder="C:\Users\...\.ssh\id_rsa">
+            </div>
+            <div class="form-group">
+                <label for="ssh-server-password">Wachtwoord (optioneel, als geen key file):</label>
+                <input type="password" id="ssh-server-password" placeholder="Wachtwoord">
+            </div>
+            <button type="submit" class="btn btn-add" style="width: 100%;">
+                ➕ Server Toevoegen
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Laad servers bij pagina laden
+    window.addEventListener('DOMContentLoaded', () => {
+        loadRdpServers();
+        loadSshServers();
+    });
+
+    function showAlert(message, type = 'success', containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        container.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+        const alert = container.querySelector('.alert');
+        alert.style.display = 'block';
+        setTimeout(() => {
+            alert.style.display = 'none';
+        }, 5000);
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // RDP Server functies
+    async function loadRdpServers() {
+        try {
+            const data = await window.appApi.getRdpServers();
+            const container = document.getElementById('rdp-servers-list');
+
+            if (data.success && data.servers.length > 0) {
+                container.innerHTML = data.servers.map(server => `
+                    <div class="rdp-server">
+                        <div class="rdp-server-info">
+                            <div class="rdp-server-name">${escapeHtml(server.name)}</div>
+                            <div class="rdp-server-details">
+                                ${escapeHtml(server.host)}${server.user ? ' | ' + escapeHtml(server.user) : ''}
+                            </div>
+                        </div>
+                        <div class="rdp-server-actions">
+                            <button class="btn btn-rdp" onclick="connectRdp(${server.id})">
+                                🔌 Verbinden
+                            </button>
+                            <button class="btn btn-delete" onclick="deleteRdpServer(${server.id})">
+                                🗑️ Verwijderen
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">Geen RDP servers. Klik op "Server Toevoegen" om er een toe te voegen.</p>';
+            }
+        } catch (error) {
+            console.error('Fout bij laden RDP servers:', error);
+        }
+    }
+
+    async function connectRdp(serverId) {
+        try {
+            const data = await window.appApi.getRdpServers();
+            const server = data.servers.find(s => s.id === serverId);
+
+            if (!server) {
+                showAlert('❌ Server niet gevonden', 'error', 'rdp-alert-container');
+                return;
+            }
+
+            const connectData = await window.appApi.connectRdp({
+                host: server.host,
+                user: server.user || null,
+                password: server.password || null,
+            });
+            if (connectData.success) {
+                showAlert(`✅ ${connectData.message}`, 'success', 'rdp-alert-container');
+            } else {
+                showAlert(`❌ Fout: ${connectData.error}`, 'error', 'rdp-alert-container');
+            }
+        } catch (error) {
+            showAlert(`❌ Fout: ${error.message}`, 'error', 'rdp-alert-container');
+        }
+    }
+
+    async function addRdpServer(event) {
+        event.preventDefault();
+
+        const server = {
+            name: document.getElementById('rdp-server-name').value.trim(),
+            host: document.getElementById('rdp-server-host').value.trim(),
+            user: document.getElementById('rdp-server-user').value.trim(),
+            password: document.getElementById('rdp-server-password').value.trim(),
+        };
+
+        try {
+            const data = await window.appApi.addRdpServer(server);
+
+            if (data.success) {
+                showAlert('✅ Server succesvol toegevoegd!', 'success', 'rdp-alert-container');
+                document.getElementById('add-rdp-server-form').reset();
+                closeAddRdpServerModal();
+                loadRdpServers();
+            } else {
+                showAlert(`❌ Fout: ${data.error}`, 'error', 'rdp-alert-container');
+            }
+        } catch (error) {
+            showAlert(`❌ Fout: ${error.message}`, 'error', 'rdp-alert-container');
+        }
+    }
+
+    async function deleteRdpServer(serverId) {
+        if (!confirm('Weet je zeker dat je deze RDP server wilt verwijderen?')) {
+            return;
+        }
+
+        try {
+            const data = await window.appApi.deleteRdpServer(serverId);
+
+            if (data.success) {
+                showAlert('✅ Server verwijderd!', 'success', 'rdp-alert-container');
+                loadRdpServers();
+            } else {
+                showAlert(`❌ Fout: ${data.error}`, 'error', 'rdp-alert-container');
+            }
+        } catch (error) {
+            showAlert(`❌ Fout: ${error.message}`, 'error', 'rdp-alert-container');
+        }
+    }
+
+    function openAddRdpServerModal() {
+        document.getElementById('addRdpServerModal').style.display = 'block';
+        document.getElementById('rdp-alert-container').innerHTML = '';
+    }
+
+    function closeAddRdpServerModal() {
+        document.getElementById('addRdpServerModal').style.display = 'none';
+        document.getElementById('add-rdp-server-form').reset();
+    }
+
+    // SSH Server functies
+    async function loadSshServers() {
+        try {
+            const data = await window.appApi.getSshServers();
+            const container = document.getElementById('ssh-servers-list');
+
+            if (data.success && data.servers.length > 0) {
+                container.innerHTML = data.servers.map(server => `
+                    <div class="ssh-server">
+                        <div class="ssh-server-info">
+                            <div class="ssh-server-name">${escapeHtml(server.name)}</div>
+                            <div class="ssh-server-details">
+                                ${escapeHtml(server.host)}:${server.port || 22}${server.user ? ' | ' + escapeHtml(server.user) : ''}
+                            </div>
+                        </div>
+                        <div class="ssh-server-actions">
+                            <button class="btn btn-rdp" onclick="connectSsh(${server.id})">
+                                🔌 Verbinden
+                            </button>
+                            <button class="btn btn-delete" onclick="deleteSshServer(${server.id})">
+                                🗑️ Verwijderen
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">Geen SSH servers. Klik op "Server Toevoegen" om er een toe te voegen.</p>';
+            }
+        } catch (error) {
+            console.error('Fout bij laden SSH servers:', error);
+        }
+    }
+
+    async function connectSsh(serverId) {
+        try {
+            const data = await window.appApi.getSshServers();
+            const server = data.servers.find(s => s.id === serverId);
+
+            if (!server) {
+                showAlert('❌ Server niet gevonden', 'error', 'ssh-alert-container');
+                return;
+            }
+
+            const connectData = await window.appApi.connectSsh({
+                host: server.host,
+                user: server.user || null,
+                port: server.port || 22,
+                key_file: server.key_file || null,
+                password: server.password || null,
+            });
+            if (connectData.success) {
+                showAlert(`✅ ${connectData.message}`, 'success', 'ssh-alert-container');
+            } else {
+                showAlert(`❌ Fout: ${connectData.error}`, 'error', 'ssh-alert-container');
+            }
+        } catch (error) {
+            showAlert(`❌ Fout: ${error.message}`, 'error', 'ssh-alert-container');
+        }
+    }
+
+        async function addSshServer(event) {
+            event.preventDefault();
+
+            const server = {
+                name: document.getElementById('ssh-server-name').value.trim(),
+                host: document.getElementById('ssh-server-host').value.trim(),
+                user: document.getElementById('ssh-server-user').value.trim(),
+                port: parseInt(document.getElementById('ssh-server-port').value) || 22,
+                key_file: document.getElementById('ssh-server-key').value.trim(),
+                password: document.getElementById('ssh-server-password').value.trim(),
+            };
+
+        try {
+            const data = await window.appApi.addSshServer(server);
+
+            if (data.success) {
+                showAlert('✅ Server succesvol toegevoegd!', 'success', 'ssh-alert-container');
+                document.getElementById('add-ssh-server-form').reset();
+                closeAddSshServerModal();
+                loadSshServers();
+            } else {
+                showAlert(`❌ Fout: ${data.error}`, 'error', 'ssh-alert-container');
+            }
+        } catch (error) {
+            showAlert(`❌ Fout: ${error.message}`, 'error', 'ssh-alert-container');
+        }
+    }
+
+    async function deleteSshServer(serverId) {
+        if (!confirm('Weet je zeker dat je deze SSH server wilt verwijderen?')) {
+            return;
+        }
+
+        try {
+            const data = await window.appApi.deleteSshServer(serverId);
+
+            if (data.success) {
+                showAlert('✅ Server verwijderd!', 'success', 'ssh-alert-container');
+                loadSshServers();
+            } else {
+                showAlert(`❌ Fout: ${data.error}`, 'error', 'ssh-alert-container');
+            }
+        } catch (error) {
+            showAlert(`❌ Fout: ${error.message}`, 'error', 'ssh-alert-container');
+        }
+    }
+
+    function openAddSshServerModal() {
+        document.getElementById('addSshServerModal').style.display = 'block';
+        document.getElementById('ssh-alert-container').innerHTML = '';
+    }
+
+    function closeAddSshServerModal() {
+        document.getElementById('addSshServerModal').style.display = 'none';
+        document.getElementById('add-ssh-server-form').reset();
+    }
+
+    // Sluit modal als je buiten klikt
+    window.onclick = function(event) {
+        const rdpServerModal = document.getElementById('addRdpServerModal');
+        if (event.target === rdpServerModal) {
+            closeAddRdpServerModal();
+        }
+        const sshServerModal = document.getElementById('addSshServerModal');
+        if (event.target === sshServerModal) {
+            closeAddSshServerModal();
+        }
+    }
+</script>
+{% endblock %}
