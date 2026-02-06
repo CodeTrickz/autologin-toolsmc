@@ -48,12 +48,9 @@ def create_driver() -> webdriver.Chrome:
     return driver
 
 
-def login_smartschool_via_microsoft() -> None:
+def _do_smartschool_microsoft_login(ms_email: str, ms_password: str) -> None:
+    """Voer Smartschool login via Microsoft uit met gegeven e-mail en wachtwoord."""
     load_dotenv()
-
-    ms_email = get_credential_or_fail("smartschool", "email")
-    ms_password = get_credential_or_fail("smartschool", "password")
-
     driver = create_driver()
 
     try:
@@ -143,10 +140,21 @@ def login_smartschool_via_microsoft() -> None:
             time.sleep(3600)
 
     finally:
-        # Laat de browser open staan zodat je ingelogd blijft.
-        # Comment de volgende regel uit als je de browser automatisch wilt sluiten:
-        # driver.quit()
         pass
+
+
+def login_smartschool_via_microsoft() -> None:
+    """Log in op Smartschool met de standaard Smartschool-credentials."""
+    ms_email = get_credential_or_fail("smartschool", "email")
+    ms_password = get_credential_or_fail("smartschool", "password")
+    _do_smartschool_microsoft_login(ms_email, ms_password)
+
+
+def login_smartschool_admin_via_microsoft() -> None:
+    """Log in op Smartschool met het beheerdersaccount (aparte credentials)."""
+    ms_email = get_credential_or_fail("smartschool_admin", "email")
+    ms_password = get_credential_or_fail("smartschool_admin", "password")
+    _do_smartschool_microsoft_login(ms_email, ms_password)
 
 
 if __name__ == "__main__":

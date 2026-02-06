@@ -21,6 +21,7 @@ De Sint Maarten Campus Autologin Tool is een Python-gebaseerde applicatie die:
 
 - **Automatische web logins** uitvoert voor:
   - Smartschool (via Microsoft SSO)
+  - Smartschool Beheerder (zelfde flow, aparte credentials)
   - Microsoft 365 Admin Center
   - Google Workspace Admin Console
   - Easy4U
@@ -40,11 +41,12 @@ De Sint Maarten Campus Autologin Tool is een Python-gebaseerde applicatie die:
 De tool ondersteunt automatische login voor de volgende services:
 
 1. **Smartschool** - Login via Microsoft SSO
-2. **Microsoft Admin** - Directe login naar Microsoft 365 Admin Center
-3. **Google Admin** - Login naar Google Workspace Admin Console (inclusief Microsoft SSO redirect handling)
-4. **Easy4U** - Automatische login naar Easy4U platform
+2. **Smartschool Beheerder** - Zelfde login als Smartschool, met apart beheerdersaccount (eigen credentials)
+3. **Microsoft Admin** - Directe login naar Microsoft 365 Admin Center
+4. **Google Admin** - Login naar Google Workspace Admin Console (inclusief Microsoft SSO redirect handling)
+5. **Easy4U** - Automatische login naar Easy4U platform
 
-**Belangrijk:** Je kunt geen nieuwe auto-login services toevoegen via de web interface. Alleen de bovenstaande 4 services zijn ondersteund. Voor nieuwe services is code-aanpassing nodig.
+**Belangrijk:** Je kunt geen nieuwe auto-login services toevoegen via de web interface. Alleen de bovenstaande 5 services zijn ondersteund. Voor nieuwe services is code-aanpassing nodig.
 
 ### Remote Connections
 
@@ -146,6 +148,10 @@ Voor elke auto-login service moet je de volgende gegevens invullen:
 #### Smartschool
 - **E-mail:** Je Microsoft e-mail adres
 - **Wachtwoord:** Je Microsoft wachtwoord
+
+#### Smartschool Beheerder
+- **E-mail:** Beheerders-Microsoft e-mail adres
+- **Wachtwoord:** Beheerders-wachtwoord (zelfde loginflow als Smartschool)
 
 #### Microsoft Admin
 - **URL:** Admin URL (standaard: `https://admin.microsoft.com`)
@@ -511,11 +517,16 @@ Deze tool is ontwikkeld voor intern gebruik bij Sint-Maarten Campus.
 
 ---
 
-**Versie:** 1.0.6  
+**Versie:** 1.0.7  
 **Laatste update:** Februari 2026  
 **Auteur:** Wesley Van Hoof
 
 ### Changelog
+
+#### Versie 1.0.7 (Februari 2026)
+- ✅ **Documentatie:** Zoekfunctie toegevoegd op de documentatiepagina (live zoeken, markeren van treffers, scroll naar eerste resultaat)
+- ✅ **Desktop-app:** Verbeterd laadgedrag: directe URL naar hoofdpagina met cache-busting, langere wachttijd na serverstart, no-cache headers voor HTML om wit scherm te verminderen
+- ✅ **Desktop-app:** Route `/loading` beschikbaar voor same-origin laadscherm; standalone-modus gebruikt `loading.html` in static export
 
 #### Versie 1.0.6 (Februari 2026)
 - ✅ **Documentatie:** Nieuwe navigatiebalk met inhoudsopgave op de documentatiepagina (sticky sidebar, smooth scroll)
@@ -557,7 +568,7 @@ Deze tool is ontwikkeld voor intern gebruik bij Sint-Maarten Campus.
 
 #### Versie 1.0 (Februari 2026)
 - ✅ Eerste release
-- ✅ Auto-login voor Smartschool, Microsoft Admin, Google Admin, Easy4U
+- ✅ Auto-login voor Smartschool, Smartschool Beheerder, Microsoft Admin, Google Admin, Easy4U
 - ✅ RDP en SSH server beheer
 - ✅ Encrypted credential opslag
 - ✅ Web interface voor beheer

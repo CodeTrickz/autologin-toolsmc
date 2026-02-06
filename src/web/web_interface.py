@@ -13,7 +13,7 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 # Import login modules
-from src.auto_login.auto_smartschool_login import login_smartschool_via_microsoft
+from src.auto_login.auto_smartschool_login import login_smartschool_via_microsoft, login_smartschool_admin_via_microsoft
 from src.auto_login.auto_microsoft_admin_login import login_microsoft_admin
 from src.auto_login.auto_google_admin_login import login_google_admin
 from src.auto_login.auto_easy4u_login import login_easy4u
@@ -48,7 +48,7 @@ app = Flask(__name__, template_folder=str(TEMPLATES_DIR))
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-key-change-in-production")
 
 # Applicatieversie (één plek; ook zichtbaar in webinterface en API)
-APP_VERSION = "1.0.6"
+APP_VERSION = "1.0.7"
 DATA_DIR = get_data_dir()
 RDP_SERVERS_FILE = DATA_DIR / "rdp_servers.json"
 SSH_SERVERS_FILE = DATA_DIR / "ssh_servers.json"
@@ -63,6 +63,15 @@ load_dotenv()
 def inject_version():
     """Maak applicatieversie beschikbaar in alle templates."""
     return {"app_version": APP_VERSION}
+
+
+@app.after_request
+def no_cache_html(resp):
+    """Voorkom gecachte lege pagina in desktop webview."""
+    if resp.content_type and "text/html" in resp.content_type:
+        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+        resp.headers["Pragma"] = "no-cache"
+    return resp
 
 
 def load_rdp_servers():
@@ -199,6 +208,20 @@ def save_credentials(creds):
     except Exception as e:
         print(f"Fout bij opslaan credentials: {e}")
         return False
+
+
+@app.route("/loading")
+def loading():
+    """Korte laadpagina voor desktop webview (same-origin redirect voorkomt vastlopen)."""
+    html = (
+        "<!DOCTYPE html><html lang='nl'><head><meta charset='utf-8'>"
+        "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+        "<script>setTimeout(function(){ window.location.href = '/'; }, 600);</script>"
+        "</head><body style='margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;"
+        "font-family:Segoe UI,sans-serif;background:linear-gradient(135deg,#4a90a4 0%,#5fb3a8 50%,#7bc4a0 100%);"
+        "color:#fff;font-size:1.2em;'>Applicatie laden...</body></html>"
+    )
+    return html, 200, {"Content-Type": "text/html; charset=utf-8"}
 
 
 @app.route("/")
@@ -371,6 +394,7 @@ def start_login(service):
     
     login_functions = {
         "smartschool": login_smartschool_via_microsoft,
+        "smartschool_admin": login_smartschool_admin_via_microsoft,
         "microsoft_admin": login_microsoft_admin,
         "google_admin": login_google_admin,
         "easy4u": login_easy4u,
@@ -381,6 +405,7 @@ def start_login(service):
     
     required_fields = {
         "smartschool": ["email", "password"],
+        "smartschool_admin": ["email", "password"],
         "microsoft_admin": ["url", "email", "password"],
         "google_admin": ["url", "email", "password"],
         "easy4u": ["url", "email", "password"],
@@ -622,6 +647,21 @@ def save_service_credentials(service):
             return jsonify({"success": False, "error": "Wachtwoord is verplicht"}), 400
         
         credentials["smartschool"] = {
+            "email": email,
+            "password": password,
+        }
+    elif service == "smartschool_admin":
+        email = sanitize_string(data.get("email", ""))
+        password = data.get("password", "")
+        
+        if not email:
+            return jsonify({"success": False, "error": "E-mail is verplicht"}), 400
+        if not validate_email(email):
+            return jsonify({"success": False, "error": "Ongeldig e-mail adres"}), 400
+        if not password:
+            return jsonify({"success": False, "error": "Wachtwoord is verplicht"}), 400
+        
+        credentials["smartschool_admin"] = {
             "email": email,
             "password": password,
         }

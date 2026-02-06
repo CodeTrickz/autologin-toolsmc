@@ -63,6 +63,16 @@ class DesktopAPI:
             if not password:
                 return {"success": False, "error": "Wachtwoord is verplicht"}
             credentials["smartschool"] = {"email": email, "password": password}
+        elif service == "smartschool_admin":
+            email = sanitize_string(data.get("email", ""))
+            password = data.get("password", "")
+            if not email:
+                return {"success": False, "error": "E-mail is verplicht"}
+            if not validate_email(email):
+                return {"success": False, "error": "Ongeldig e-mail adres"}
+            if not password:
+                return {"success": False, "error": "Wachtwoord is verplicht"}
+            credentials["smartschool_admin"] = {"email": email, "password": password}
         elif service == "microsoft_admin":
             url = sanitize_string(data.get("url", "https://admin.microsoft.com"))
             email = sanitize_string(data.get("email", ""))
@@ -223,16 +233,17 @@ class DesktopAPI:
             return {"success": False, "error": str(e)}
 
     def login(self, service):
-        valid = ["smartschool", "microsoft_admin", "google_admin", "easy4u"]
+        valid = ["smartschool", "smartschool_admin", "microsoft_admin", "google_admin", "easy4u"]
         if service not in valid:
             return {"success": False, "error": "Onbekende service"}
         try:
-            from src.auto_login.auto_smartschool_login import login_smartschool_via_microsoft
+            from src.auto_login.auto_smartschool_login import login_smartschool_via_microsoft, login_smartschool_admin_via_microsoft
             from src.auto_login.auto_microsoft_admin_login import login_microsoft_admin
             from src.auto_login.auto_google_admin_login import login_google_admin
             from src.auto_login.auto_easy4u_login import login_easy4u
             funcs = {
                 "smartschool": login_smartschool_via_microsoft,
+                "smartschool_admin": login_smartschool_admin_via_microsoft,
                 "microsoft_admin": login_microsoft_admin,
                 "google_admin": login_google_admin,
                 "easy4u": login_easy4u,

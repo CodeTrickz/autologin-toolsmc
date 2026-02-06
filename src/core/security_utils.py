@@ -151,7 +151,7 @@ def validate_service_name(service: str) -> bool:
     Returns:
         True als geldig, anders False
     """
-    valid_services = ["smartschool", "microsoft_admin", "google_admin", "easy4u"]
+    valid_services = ["smartschool", "smartschool_admin", "microsoft_admin", "google_admin", "easy4u"]
     return service in valid_services
 
 

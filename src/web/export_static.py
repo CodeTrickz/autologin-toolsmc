@@ -40,8 +40,14 @@ def _render_documentation_html():
         return f"<p><strong>Fout bij laden documentatie:</strong> {html_module.escape(str(e))}</p>"
 
 
+LOADING_HTML = """<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<script>setTimeout(function(){ window.location.href = './index.html'; }, 500);</script>
+</head><body style="margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:Segoe UI,sans-serif;background:linear-gradient(135deg,#4a90a4 0%,#5fb3a8 50%,#7bc4a0 100%);color:#fff;font-size:1.2em;">Applicatie laden...</body></html>"""
+
+
 def export():
     OUTPUT_DIR.mkdir(exist_ok=True)
+    (OUTPUT_DIR / "loading.html").write_text(LOADING_HTML, encoding="utf-8")
     documentation_html = _render_documentation_html()
     pages = [
         ("index.html", "index.html", {}),

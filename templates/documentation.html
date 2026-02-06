@@ -188,12 +188,45 @@
         border-top: 2px solid #2d8659;
         margin: 30px 0;
     }
+    
+    .doc-search-wrap {
+        margin-bottom: 20px;
+        flex: 1;
+        min-width: 0;
+    }
+    .doc-search-wrap input {
+        width: 100%;
+        max-width: 320px;
+        padding: 10px 14px 10px 36px;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        font-size: 1em;
+        background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 10px center;
+        transition: border-color 0.2s;
+    }
+    .doc-search-wrap input:focus {
+        outline: none;
+        border-color: #2d8659;
+    }
+    .doc-search-wrap input::placeholder {
+        color: #999;
+    }
+    .documentation-content mark.doc-search-hit {
+        background: #fff3cd;
+        color: #856404;
+        padding: 1px 2px;
+        border-radius: 2px;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="section">
     <h2>📚 Documentatie</h2>
+    
+    <div class="doc-search-wrap">
+        <input type="search" id="doc-search" placeholder="Zoeken in documentatie..." autocomplete="off" aria-label="Zoeken in documentatie">
+    </div>
     
     <div class="doc-layout">
         <nav class="doc-nav" id="doc-nav" aria-label="Inhoudsopgave">
@@ -228,13 +261,73 @@
 (function() {
     var content = document.getElementById('doc-content');
     var tocEl = document.getElementById('doc-toc');
+    var searchInput = document.getElementById('doc-search');
     if (!content || !tocEl) return;
+    
+    function unwrapMarks() {
+        var marks = content.querySelectorAll('mark.doc-search-hit');
+        marks.forEach(function(m) {
+            var text = document.createTextNode(m.textContent);
+            m.parentNode.replaceChild(text, m);
+        });
+    }
+    
+    function highlightMatches(term) {
+        unwrapMarks();
+        if (!term || term.length < 2) {
+            return;
+        }
+        term = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        var regex = new RegExp('(' + term + ')', 'gi');
+        var walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT, {
+            acceptNode: function(node) {
+                return node.parentNode && node.parentNode.tagName !== 'SCRIPT' && node.parentNode.tagName !== 'STYLE'
+                    ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+            }
+        }, false);
+        var textNodes = [];
+        while (walker.nextNode()) textNodes.push(walker.currentNode);
+        var firstMark = null;
+        textNodes.forEach(function(node) {
+            var text = node.textContent;
+            var parts = text.split(regex);
+            if (parts.length <= 1) return;
+            var frag = document.createDocumentFragment();
+            for (var i = 0; i < parts.length; i++) {
+                if (i % 2 === 1) {
+                    var mark = document.createElement('mark');
+                    mark.className = 'doc-search-hit';
+                    mark.textContent = parts[i];
+                    frag.appendChild(mark);
+                    if (!firstMark) firstMark = mark;
+                } else {
+                    frag.appendChild(document.createTextNode(parts[i]));
+                }
+            }
+            node.parentNode.replaceChild(frag, node);
+        });
+        if (firstMark) firstMark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    
+    if (searchInput) {
+        var debounce;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(debounce);
+            debounce = setTimeout(function() { highlightMatches(searchInput.value.trim()); }, 200);
+        });
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                searchInput.value = '';
+                unwrapMarks();
+                searchInput.focus();
+            }
+        });
+    }
     
     var headings = content.querySelectorAll('h1, h2, h3, h4');
     if (headings.length === 0) return;
     
     tocEl.innerHTML = '';
-    var lastLevel = 0;
     headings.forEach(function(h) {
         var level = parseInt(h.tagName.charAt(1), 10);
         var text = h.textContent.trim();
@@ -248,7 +341,8 @@
         a.className = 'nav-h' + level;
         a.addEventListener('click', function(e) {
             e.preventDefault();
-            document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'start' });
+            var target = document.getElementById(id);
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
         li.appendChild(a);
         tocEl.appendChild(li);

@@ -114,6 +114,12 @@ def main():
                 except Exception:
                     pass
                 use_standalone = False
+        if use_standalone and (static_export / "index.html").exists() and not (static_export / "loading.html").exists():
+            try:
+                from src.web.export_static import export
+                export()
+            except Exception:
+                pass
         if use_standalone and (static_export / "index.html").exists():
             server_port = 0
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -125,15 +131,14 @@ def main():
                 daemon=True,
             )
             server_thread.start()
-            url = f"http://127.0.0.1:{server_port}/index.html"
-            time.sleep(0.3)
+            # Start op loading.html (zelfde server); die redirect naar index.html
+            url = f"http://127.0.0.1:{server_port}/loading.html"
+            time.sleep(0.6)
             from src.web.desktop_api import DesktopAPI
             api = DesktopAPI()
-            # Debug: print beschikbare methods
             try:
                 methods = [m for m in dir(api) if not m.startswith('_') and callable(getattr(api, m))]
                 print("DesktopAPI methods:", methods)
-                # Test of save_credentials bestaat
                 if hasattr(api, 'save_credentials'):
                     print("✓ save_credentials method exists")
                 else:
@@ -141,15 +146,10 @@ def main():
             except Exception as e:
                 print(f"Error checking API methods: {e}")
             window = webview.create_window(
-                title,
-                url,
-                width=1200,
-                height=800,
-                min_size=(900, 600),
-                resizable=True,
-                js_api=api,
+                title, url=url, width=1200, height=800,
+                min_size=(900, 600), resizable=True, js_api=api,
             )
-            webview.start(debug=True)  # Enable debug voor betere error messages
+            webview.start(debug=True)
             return
 
     # Normale modus: Flask op localhost + webview (geen aparte browser)
@@ -159,15 +159,15 @@ def main():
     if is_port_in_use(port):
         if WEBVIEW_AVAILABLE:
             try:
-                # Expose API ook wanneer poort al in gebruik is
                 from src.web.desktop_api import DesktopAPI
                 api = DesktopAPI()
+                start_url = f"{url.rstrip('/')}/?_={int(time.time())}"
                 window = webview.create_window(
-                    title, url, width=1200, height=800,
+                    title, url=start_url, width=1200, height=800,
                     min_size=(900, 600), resizable=True,
-                    js_api=api  # Expose Python API to JavaScript
+                    js_api=api
                 )
-                webview.start(debug=True)  # Enable debug voor betere error messages
+                webview.start(debug=True)
                 return
             except Exception as e:
                 try:
@@ -184,18 +184,20 @@ def main():
     flask_thread.start()
     if not wait_for_server(url, max_wait=15):
         return
+    time.sleep(2.0)  # WebView2 en server stabiel laten worden
 
     if WEBVIEW_AVAILABLE:
         try:
-            # Expose API ook in Flask modus
             from src.web.desktop_api import DesktopAPI
             api = DesktopAPI()
+            # Direct hoofdpagina; cache-busting zodat webview geen lege pagina toont
+            start_url = f"{url.rstrip('/')}/?_={int(time.time())}"
             window = webview.create_window(
-                title, url, width=1200, height=800,
+                title, url=start_url, width=1200, height=800,
                 min_size=(900, 600), resizable=True,
-                js_api=api  # Expose Python API to JavaScript
+                js_api=api
             )
-            webview.start(debug=True)  # Enable debug voor betere error messages
+            webview.start(debug=True)
         except Exception as e:
             try:
                 print(f"Fout bij starten webview: {e}")
