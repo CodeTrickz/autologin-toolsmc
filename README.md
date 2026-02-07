@@ -140,7 +140,7 @@ Dit maakt `SintMaartenCampusAutologin_Installatie.zip` met de .exe, `install.bat
 1. Maak lokaal de zip: `scripts\maak_zip_installatie.bat` (zo nodig eerst `scripts\build_exe.bat`).
 2. Run **`scripts\publish_release.bat`**:
    - Met **GitHub CLI (`gh`)** geïnstalleerd: maakt automatisch een release met tag `v<versie>` en uploadt de zip.
-   - Zonder `gh`: opent de pagina [New release](https://github.com/CodeTrickz/autologin-toolsmc/releases/new); kies tag (bv. `v1.0.7`), sleep de zip naar de pagina en klik op **Publish release**.
+   - Zonder `gh`: opent de pagina [New release](https://github.com/CodeTrickz/autologin-toolsmc/releases/new); kies tag (bv. `v1.0.8`), sleep de zip naar de pagina en klik op **Publish release**.
 3. Daarna is de zip downloadbaar via [Releases](https://github.com/CodeTrickz/autologin-toolsmc/releases).
 
 Voor een complete release package (map):
@@ -550,11 +550,16 @@ Deze tool is ontwikkeld voor intern gebruik bij Sint-Maarten Campus.
 
 ---
 
-**Versie:** 1.0.7  
+**Versie:** 1.0.8  
 **Laatste update:** Februari 2026  
 **Auteur:** Wesley Van Hoof
 
 ### Changelog
+
+#### Versie 1.0.8 (Februari 2026)
+- ✅ **Desktop .exe:** Geen console-venster en geen DevTools meer bij start; alleen het applicatievenster
+- ✅ **Venstertitel:** Versie zichtbaar in de titelbalk (Sint Maarten Campus Autologin Tool v1.0.8)
+- ✅ **Release workflow:** Juiste rechten voor GitHub Releases; build (Windows) en release (Ubuntu) gesplitst; zip als asset
 
 #### Versie 1.0.7 (Februari 2026)
 - ✅ **Documentatie:** Zoekfunctie toegevoegd op de documentatiepagina (live zoeken, markeren van treffers, scroll naar eerste resultaat)

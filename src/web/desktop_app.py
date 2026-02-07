@@ -149,7 +149,7 @@ def main():
                 title, url=url, width=1200, height=800,
                 min_size=(900, 600), resizable=True, js_api=api,
             )
-            webview.start(debug=True)
+            webview.start(debug=not getattr(sys, "frozen", False))
             return
 
     # Normale modus: Flask op localhost + webview (geen aparte browser)
@@ -167,8 +167,8 @@ def main():
                     min_size=(900, 600), resizable=True,
                     js_api=api
                 )
-                webview.start(debug=True)
-                return
+            webview.start(debug=not getattr(sys, "frozen", False))
+            return
             except Exception as e:
                 try:
                     print(f"Fout bij starten webview: {e}")
@@ -197,7 +197,7 @@ def main():
                 min_size=(900, 600), resizable=True,
                 js_api=api
             )
-            webview.start(debug=True)
+            webview.start(debug=not getattr(sys, "frozen", False))
         except Exception as e:
             try:
                 print(f"Fout bij starten webview: {e}")
