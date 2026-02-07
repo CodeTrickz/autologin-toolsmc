@@ -103,18 +103,14 @@ pip install -r requirements.txt
 ```
 
 Dit installeert o.a.:
-- `selenium` - Voor browser automation (andere auto-logins)
-- `playwright` - Voor Easy4U auto-login (easy4u.nl)
+- `selenium` - Voor browser automation (o.a. Smartschool, Microsoft, Google, Easy4U)
 - `python-dotenv` - Voor environment variables
 - `flask` - Voor de web interface
 - `cryptography` - Voor encryptie van credentials
 - `markdown` - Voor documentatie weergave in web interface
 - `pyinstaller` - Voor het maken van een Windows executable
 
-**Easy4U (alleen bij development):** Bij development moet je één keer Chromium voor Playwright installeren. De **desktop .exe** gebruikt op Windows automatisch Microsoft Edge.
-```bash
-playwright install chromium
-```
+**Easy4U** gebruikt Selenium + Chrome (zoals Smartschool, Microsoft en Google). Zorg dat Chrome geïnstalleerd is voor de auto-login.
 
 ### Stap 2b: (Optioneel) Maak een Windows Executable
 
@@ -140,7 +136,7 @@ Dit maakt `SintMaartenCampusAutologin_Installatie.zip` met de .exe, `install.bat
 1. Maak lokaal de zip: `scripts\maak_zip_installatie.bat` (zo nodig eerst `scripts\build_exe.bat`).
 2. Run **`scripts\publish_release.bat`**:
    - Met **GitHub CLI (`gh`)** geïnstalleerd: maakt automatisch een release met tag `v<versie>` en uploadt de zip.
-   - Zonder `gh`: opent de pagina [New release](https://github.com/CodeTrickz/autologin-toolsmc/releases/new); kies tag (bv. `v1.0.9`), sleep de zip naar de pagina en klik op **Publish release**.
+   - Zonder `gh`: opent de pagina [New release](https://github.com/CodeTrickz/autologin-toolsmc/releases/new); kies tag (bv. `v1.0.11`), sleep de zip naar de pagina en klik op **Publish release**.
 3. Daarna is de zip downloadbaar via [Releases](https://github.com/CodeTrickz/autologin-toolsmc/releases).
 
 Voor een complete release package (map):
@@ -551,7 +547,7 @@ Deze tool is ontwikkeld voor intern gebruik bij Sint-Maarten Campus.
 
 ---
 
-**Versie:** 1.0.9  
+**Versie:** 1.0.11  
 **Laatste update:** Februari 2026  
 **Auteur:** Wesley Van Hoof
 
@@ -561,6 +557,12 @@ Deze tool is ontwikkeld voor intern gebruik bij Sint-Maarten Campus.
 - ✅ **Release:** Wipe van credentials en servers vóór elke build in de workflow; schone zip zonder login-restanten
 - ✅ **Easy4U:** Gebruikt Microsoft Edge op Windows (werkt op elke PC zonder extra installatie)
 - ✅ **Titelbalk:** Versie in HTML-titel zodat de venstertitel overal de versie toont
+
+#### Versie 1.0.11 (Februari 2026)
+- ✅ **Easy4U:** Alleen Chrome (Selenium + Chrome, zoals de andere auto-logins); documentatie bijgewerkt
+
+#### Versie 1.0.10 (Februari 2026)
+- ✅ **Easy4U:** Eén implementatie met Selenium voor .exe en Python; later overgezet naar Chrome
 
 #### Versie 1.0.8 (Februari 2026)
 - ✅ **Desktop .exe:** Geen console-venster en geen DevTools meer bij start; alleen het applicatievenster

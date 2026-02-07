@@ -1,9 +1,8 @@
 """
 Automatische login voor Easy4U Nederland admin (easy4u.nl).
-Gebruikt Playwright voor betrouwbare invulling en klik op de loginpagina.
+Gebruikt Selenium + Chrome (binnen en buiten de .exe).
 Credentials komen uit de app (Credentials > Easy4U).
 """
-import asyncio
 import os
 import sys
 from pathlib import Path
@@ -32,9 +31,13 @@ def get_credential_or_fail(service: str, field: str) -> str:
     return value
 
 
-async def _login_async(headed: bool = True) -> None:
-    """Playwright-based login (async)."""
+def _login_selenium_chrome() -> None:
+    """
+    Easy4U login met Selenium + Chrome.
+    Werkt zowel in de .exe als wanneer je het script in Python draait.
+    """
     from dotenv import load_dotenv
+
     env_path = DATA_DIR / ".env"
     if env_path.exists():
         load_dotenv(env_path)
@@ -44,69 +47,70 @@ async def _login_async(headed: bool = True) -> None:
     email = get_credential_or_fail("easy4u", "email")
     password = get_credential_or_fail("easy4u", "password")
 
-    from playwright.async_api import async_playwright
+    from selenium import webdriver
+    from selenium.webdriver.chrome.service import Service as ChromeService
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
 
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(
-            headless=not headed,
-            slow_mo=80 if headed else 0,
+    driver = None
+    try:
+        options = webdriver.ChromeOptions()
+        options.add_argument("--start-maximized")
+        driver = webdriver.Chrome(options=options, service=ChromeService())
+        wait = WebDriverWait(driver, 20)
+
+        driver.get(LOGIN_URL)
+        wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "input:not([type='password']):not([type='submit']):not([type='hidden'])")))
+
+        email_input = driver.find_element(
+            By.CSS_SELECTOR,
+            "input:not([type='password']):not([type='submit']):not([type='hidden'])",
         )
-        context = await browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            viewport={"width": 1280, "height": 720},
-        )
-        page = await context.new_page()
+        email_input.clear()
+        email_input.send_keys(email)
+
+        pwd_input = driver.find_element(By.CSS_SELECTOR, "input[type='password']")
+        pwd_input.clear()
+        pwd_input.send_keys(password)
 
         try:
-            print("Openen loginpagina...")
-            await page.goto(LOGIN_URL, wait_until="domcontentloaded", timeout=20000)
-            await page.wait_for_load_state("networkidle", timeout=10000)
-
-            email_input = page.locator(
-                "input:not([type='password']):not([type='submit']):not([type='hidden'])"
-            ).first
-            await email_input.wait_for(state="visible", timeout=15000)
-            await email_input.fill(email)
-
-            pwd_input = page.locator("input[type='password']").first
-            await pwd_input.wait_for(state="visible", timeout=5000)
-            await pwd_input.fill(password)
-
-            login_btn = (
-                page.get_by_role("button", name="inloggen")
-                .or_(page.locator("input[type='submit']"))
-                .or_(page.get_by_role("button", name="Inloggen"))
-                .first
+            login_btn = driver.find_element(By.CSS_SELECTOR, "input[type='submit']")
+        except Exception:
+            login_btn = driver.find_element(
+                By.XPATH,
+                "//button[contains(translate(., 'INLOGGEN', 'inloggen'), 'inloggen')]",
             )
-            await login_btn.click()
+        login_btn.click()
 
-            await page.wait_for_load_state("networkidle", timeout=15000)
+        WebDriverWait(driver, 15).until(
+            lambda d: "/login" not in d.current_url or "admin" in d.current_url
+        )
+        url = driver.current_url
+        if "/admin" in url and "/login" not in url:
+            pass
+        else:
+            try:
+                err = driver.find_element(By.CSS_SELECTOR, "[class*='error'], .alert-danger, #errorsDiv")
+                if err.is_displayed():
+                    print("Login mislukt:", err.text)
+            except Exception:
+                print("Pagina na login:", url)
 
-            url = page.url
-            if "/admin" in url and "/login" not in url:
-                print("Succesvol ingelogd op Easy4U.")
-            else:
-                error_el = page.locator("[class*='error'], .alert-danger, #errorsDiv").first
-                if await error_el.is_visible():
-                    print("Login mislukt:", await error_el.text_content())
-                else:
-                    print("Pagina na login:", url)
-
-            if headed:
-                input("Druk op Enter om de browser te sluiten...")
-        except Exception as e:
-            print("Fout:", e)
-        finally:
-            await browser.close()
+        if sys.stdin.isatty() and not getattr(sys, "frozen", False):
+            input("Druk op Enter om de browser te sluiten...")
+    finally:
+        if driver:
+            driver.quit()
 
 
 def login_easy4u() -> None:
     """
     Log automatisch in op Easy4U: https://easy4u.nl/admin/
-    Gebruikt Playwright. Credentials uit de app (Credentials > Easy4U).
+    Gebruikt Selenium + Chrome. Credentials uit de app (Credentials > Easy4U).
     """
     try:
-        asyncio.run(_login_async(headed=True))
+        _login_selenium_chrome()
     except RuntimeError:
         raise
     except Exception as e:

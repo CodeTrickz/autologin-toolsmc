@@ -48,7 +48,7 @@ app = Flask(__name__, template_folder=str(TEMPLATES_DIR))
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-key-change-in-production")
 
 # Applicatieversie (één plek; ook zichtbaar in webinterface en API)
-APP_VERSION = "1.0.9"
+APP_VERSION = "1.0.11"
 DATA_DIR = get_data_dir()
 RDP_SERVERS_FILE = DATA_DIR / "rdp_servers.json"
 SSH_SERVERS_FILE = DATA_DIR / "ssh_servers.json"

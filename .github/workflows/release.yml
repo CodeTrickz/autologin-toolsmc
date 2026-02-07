@@ -11,7 +11,7 @@ on:
       version:
         description: 'Versie (bijv. 1.0.7)'
         required: true
-        default: '1.0.9'
+        default: '1.0.11'
 
 permissions:
   contents: write
@@ -35,7 +35,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pywebview requests pyinstaller
-          playwright install chromium
 
       - name: Export static HTML
         env:
