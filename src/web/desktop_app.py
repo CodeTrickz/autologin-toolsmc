@@ -167,8 +167,8 @@ def main():
                     min_size=(900, 600), resizable=True,
                     js_api=api
                 )
-            webview.start(debug=not getattr(sys, "frozen", False))
-            return
+                webview.start(debug=not getattr(sys, "frozen", False))
+                return
             except Exception as e:
                 try:
                     print(f"Fout bij starten webview: {e}")
