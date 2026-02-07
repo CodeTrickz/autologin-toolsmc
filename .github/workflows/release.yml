@@ -1,14 +1,22 @@
-# Bij push van een tag v* (bijv. v1.0.7): bouw .exe, maak zip, publiceer naar GitHub Releases.
+# Bij push van een tag v*: bouw .exe, maak zip, publiceer naar Releases.
+# Of handmatig: Actions → Release → Run workflow → vul versie in (bijv. 1.0.7).
 name: Release
 
 on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versie voor release (bijv. 1.0.7)'
+        required: true
+        default: '1.0.7'
 
 jobs:
   release:
     runs-on: windows-latest
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,7 +47,7 @@ jobs:
           Copy-Item "scripts\install.bat" $zipDir\
           Copy-Item "scripts\Uninstall_SintMaartenCampusAutologin.bat" $zipDir\
           Copy-Item "README.md" $zipDir\
-          @"
+          Set-Content -Path "$zipDir\INSTALLATIE.txt" -Value @"
           Sint Maarten Campus Autologin Tool - Installatie
           ================================================
 
@@ -49,16 +57,23 @@ jobs:
           3. Start de applicatie via het bureaublad-icoon.
 
           VERWIJDEREN: Voer Uninstall_SintMaartenCampusAutologin.bat uit.
-          "@ | Out-File -FilePath "$zipDir\INSTALLATIE.txt" -Encoding utf8
+          "@ -Encoding utf8
           Compress-Archive -Path "$zipDir\*" -DestinationPath "SintMaartenCampusAutologin_Installatie.zip" -Force
 
-      - name: Publish release
+      - name: Verify zip exists
+        run: |
+          if (!(Test-Path "SintMaartenCampusAutologin_Installatie.zip")) { Write-Error "Zip niet aangemaakt"; exit 1 }
+          Get-Item "SintMaartenCampusAutologin_Installatie.zip" | Select-Object Name, Length
+
+      - name: Publish release with zip asset
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
+          name: ${{ github.event_name == 'workflow_dispatch' && format('v{0} - Installatie voor andere PC''s', inputs.version) || format('{0} - Installatie voor andere PC''s', github.ref_name) }}
           files: SintMaartenCampusAutologin_Installatie.zip
-          generate_release_notes: true
+          generate_release_notes: false
           body: |
-            Download **SintMaartenCampusAutologin_Installatie.zip** en voer op de doel-PC **install.bat** uit als administrator.
+            Download **SintMaartenCampusAutologin_Installatie.zip** (onder Assets) en voer op de doel-PC **install.bat** uit als administrator.
             Geen credentials of servergegevens in de zip.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
