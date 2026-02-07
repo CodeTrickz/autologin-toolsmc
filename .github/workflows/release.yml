@@ -11,7 +11,7 @@ on:
       version:
         description: 'Versie (bijv. 1.0.7)'
         required: true
-        default: '1.0.8'
+        default: '1.0.9'
 
 permissions:
   contents: write
@@ -26,6 +26,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
+      - name: Wipe credentials en servers (geen restanten in build)
+        run: python wipe_before_build.py
 
       - name: Install dependencies
         run: |

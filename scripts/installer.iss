@@ -3,7 +3,7 @@
 
 [Setup]
 AppName=Sint Maarten Campus Autologin Tool
-AppVersion=1.0.8
+AppVersion=1.0.9
 AppPublisher=Sint Maarten Campus
 AppPublisherURL=
 DefaultDirName={pf}\SintMaartenCampusAutologin
@@ -46,7 +46,7 @@ Type: filesandordirs; Name: "{app}"
 procedure InitializeWizard;
 begin
   WizardForm.LicenseLabel1.Caption := 'Sint Maarten Campus Autologin Tool' + #13#10 + 
-    'Versie 1.0.8' + #13#10 + #13#10 +
+    'Versie 1.0.9' + #13#10 + #13#10 +
     'Deze tool helpt bij automatische logins voor:' + #13#10 +
     '- Smartschool' + #13#10 +
     '- Microsoft Admin' + #13#10 +

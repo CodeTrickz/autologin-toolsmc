@@ -111,7 +111,7 @@ Dit installeert o.a.:
 - `markdown` - Voor documentatie weergave in web interface
 - `pyinstaller` - Voor het maken van een Windows executable
 
-**Easy4U:** Na de eerste `pip install` moet je één keer Chromium voor Playwright installeren:
+**Easy4U (alleen bij development):** Bij development moet je één keer Chromium voor Playwright installeren. De **desktop .exe** gebruikt op Windows automatisch Microsoft Edge.
 ```bash
 playwright install chromium
 ```
@@ -140,7 +140,7 @@ Dit maakt `SintMaartenCampusAutologin_Installatie.zip` met de .exe, `install.bat
 1. Maak lokaal de zip: `scripts\maak_zip_installatie.bat` (zo nodig eerst `scripts\build_exe.bat`).
 2. Run **`scripts\publish_release.bat`**:
    - Met **GitHub CLI (`gh`)** geïnstalleerd: maakt automatisch een release met tag `v<versie>` en uploadt de zip.
-   - Zonder `gh`: opent de pagina [New release](https://github.com/CodeTrickz/autologin-toolsmc/releases/new); kies tag (bv. `v1.0.8`), sleep de zip naar de pagina en klik op **Publish release**.
+   - Zonder `gh`: opent de pagina [New release](https://github.com/CodeTrickz/autologin-toolsmc/releases/new); kies tag (bv. `v1.0.9`), sleep de zip naar de pagina en klik op **Publish release**.
 3. Daarna is de zip downloadbaar via [Releases](https://github.com/CodeTrickz/autologin-toolsmc/releases).
 
 Voor een complete release package (map):
@@ -199,7 +199,8 @@ Voor elke auto-login service moet je de volgende gegevens invullen:
 #### Easy4U
 - **URL:** Easy4U login URL (standaard: `https://easy4u.nl/admin/`)
 - **E-mail:** Je Easy4U e-mail adres
-- **Wachtwoord:** Je Easy4U wachtwoord
+- **Wachtwoord:** Je Easy4U wachtwoord  
+- **Desktop .exe op Windows:** gebruikt Microsoft Edge (standaard aanwezig); geen aparte browser-installatie nodig.
 
 ### RDP Servers Toevoegen
 
@@ -550,11 +551,16 @@ Deze tool is ontwikkeld voor intern gebruik bij Sint-Maarten Campus.
 
 ---
 
-**Versie:** 1.0.8  
+**Versie:** 1.0.9  
 **Laatste update:** Februari 2026  
 **Auteur:** Wesley Van Hoof
 
 ### Changelog
+
+#### Versie 1.0.9 (Februari 2026)
+- ✅ **Release:** Wipe van credentials en servers vóór elke build in de workflow; schone zip zonder login-restanten
+- ✅ **Easy4U:** Gebruikt Microsoft Edge op Windows (werkt op elke PC zonder extra installatie)
+- ✅ **Titelbalk:** Versie in HTML-titel zodat de venstertitel overal de versie toont
 
 #### Versie 1.0.8 (Februari 2026)
 - ✅ **Desktop .exe:** Geen console-venster en geen DevTools meer bij start; alleen het applicatievenster
