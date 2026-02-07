@@ -1,6 +1,9 @@
 @echo off
-REM Maak een zip met alles om de applicatie op andere PC's te installeren
-cd /d "%~dp0"
+REM Maak zip voor installatie op andere PC's. Gebruikt project root (waar dist\ na build staat).
+set "SCRIPT_DIR=%~dp0"
+set "ROOT=%SCRIPT_DIR%"
+if not exist "%ROOT%SintMaartenCampusAutologin.spec" set "ROOT=%SCRIPT_DIR%..\"
+cd /d "%ROOT%"
 
 set EXE_NAME=SintMaartenCampusAutologin
 set ZIP_DIR=SintMaartenCampusAutologin_Installatie
@@ -15,7 +18,7 @@ if not exist "dist\%EXE_NAME%.exe" (
     echo De .exe is nog niet gebouwd.
     echo Eerst bouwen? (build_exe.bat wordt uitgevoerd)
     echo.
-    call build_exe.bat
+    call "%SCRIPT_DIR%build_exe.bat"
     if not exist "dist\%EXE_NAME%.exe" (
         echo ERROR: Build mislukt of .exe niet gevonden.
         pause
@@ -29,7 +32,8 @@ mkdir "%ZIP_DIR%"
 
 echo Kopieren van bestanden...
 copy "dist\%EXE_NAME%.exe" "%ZIP_DIR%\" >nul
-copy "install.bat" "%ZIP_DIR%\" >nul
+copy "%SCRIPT_DIR%install.bat" "%ZIP_DIR%\" >nul
+copy "%SCRIPT_DIR%Uninstall_SintMaartenCampusAutologin.bat" "%ZIP_DIR%\" >nul
 if exist "README.md" copy "README.md" "%ZIP_DIR%\" >nul
 
 echo Schrijven van INSTALLATIE.txt...
@@ -49,9 +53,9 @@ echo EERSTE KEER GEBRUIK:
 echo - Configureer je inloggegevens via Credentials in de applicatie.
 echo - Chrome moet geinstalleerd zijn voor de auto-login functies.
 echo.
-echo VERWIJDEREN:
-echo - Ga naar: C:\Program Files\SintMaartenCampusAutologin
-echo - Voer uninstall.bat uit
+echo VERWIJDEREN ^(alle versies^):
+echo - Voer Uninstall_SintMaartenCampusAutologin.bat uit ^(uit deze map of na installatie uit Program Files^)
+echo - Of: Ga naar C:\Program Files\SintMaartenCampusAutologin en voer uninstall.bat uit
 echo.
 echo Voor meer informatie: zie README.md in deze map.
 echo =================================================

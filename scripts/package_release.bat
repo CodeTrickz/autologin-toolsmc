@@ -1,4 +1,9 @@
 @echo off
+set "SCRIPT_DIR=%~dp0"
+set "ROOT=%SCRIPT_DIR%"
+if not exist "%ROOT%SintMaartenCampusAutologin.spec" set "ROOT=%SCRIPT_DIR%..\"
+cd /d "%ROOT%"
+
 echo ========================================
 echo Creating Release Package
 echo ========================================
@@ -8,7 +13,7 @@ set RELEASE_DIR=release
 set EXE_NAME=SintMaartenCampusAutologin
 
 if not exist dist\%EXE_NAME%.exe (
-    echo ERROR: Executable not found. Please run build_exe.bat first.
+    echo ERROR: Executable not found. Run scripts\build_exe.bat first.
     pause
     exit /b 1
 )
@@ -21,7 +26,10 @@ echo Copying executable...
 copy dist\%EXE_NAME%.exe %RELEASE_DIR%\ >nul
 
 echo Copying templates...
-xcopy templates %RELEASE_DIR%\templates\ /E /I /Y >nul
+if exist templates xcopy templates %RELEASE_DIR%\templates\ /E /I /Y >nul
+
+echo Copying uninstaller...
+if exist "%SCRIPT_DIR%Uninstall_SintMaartenCampusAutologin.bat" copy "%SCRIPT_DIR%Uninstall_SintMaartenCampusAutologin.bat" %RELEASE_DIR%\ >nul
 
 echo Copying documentation...
 copy README.md %RELEASE_DIR%\ >nul

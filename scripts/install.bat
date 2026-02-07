@@ -107,24 +107,29 @@ if exist "%START_SHORTCUT%" (
     echo WAARSCHUWING: Kon Start Menu snelkoppeling niet maken.
 )
 
-REM Maak uninstall script
+REM Maak uninstall script (helper uit TEMP verwijdert programma-map na exit)
 echo.
 echo Maken van uninstall script...
 (
 echo @echo off
-echo REM Uninstall script voor Sint Maarten Campus Autologin Tool
-echo echo Verwijderen van Sint Maarten Campus Autologin Tool...
+echo setlocal enabledelayedexpansion
+echo set "INSTALL_DIR=%INSTALL_DIR%"
+echo set "APPDATA_DIR=%%LOCALAPPDATA%%\SintMaartenCampusAutologin"
+echo set "DESKTOP_LNK=%%USERPROFILE%%\Desktop\Sint Maarten Campus Autologin.lnk"
+echo set "STARTMENU_LNK=%%APPDATA%%\Microsoft\Windows\Start Menu\Programs\Sint Maarten Campus Autologin.lnk"
 echo.
-echo REM Stop de applicatie als deze draait
 echo taskkill /F /IM SintMaartenCampusAutologin.exe ^>nul 2^>^&1
+echo timeout /t 2 /nobreak ^>nul
+echo del /F /Q "%%DESKTOP_LNK%%" ^>nul 2^>^&1
+echo del /F /Q "%%STARTMENU_LNK%%" ^>nul 2^>^&1
+echo if exist "%%APPDATA_DIR%%" rd /S /Q "%%APPDATA_DIR%%"
 echo.
-echo REM Verwijder snelkoppelingen
-echo del /F /Q "%DESKTOP%\Sint Maarten Campus Autologin.lnk" ^>nul 2^>^&1
-echo del /F /Q "%START_MENU%\Sint Maarten Campus Autologin.lnk" ^>nul 2^>^&1
-echo.
-echo REM Verwijder installatie directory
-echo rd /S /Q "%INSTALL_DIR%" ^>nul 2^>^&1
-echo.
+echo set "HELPER=%%TEMP%%\smca_uninstall_helper.bat"
+echo echo @echo off ^> "%%HELPER%%"
+echo echo timeout /t 1 /nobreak ^>nul ^>> "%%HELPER%%"
+echo echo rd /S /Q "!INSTALL_DIR!" ^>> "%%HELPER%%"
+echo echo del "%%HELPER%%" ^>> "%%HELPER%%"
+echo start /d "%%TEMP%%" /wait cmd /c "%%HELPER%%"
 echo echo Applicatie verwijderd.
 echo pause
 ) > "%INSTALL_DIR%\uninstall.bat"

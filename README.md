@@ -99,22 +99,28 @@ playwright install chromium
 
 ### Stap 2b: (Optioneel) Maak een Windows Executable
 
-Voor distributie als standalone Windows applicatie:
+Voor distributie als standalone Windows applicatie (vanuit de `scripts` map):
 
 ```bash
-build_exe.bat
+scripts\build_exe.bat
 ```
 
-Dit maakt een `SintMaartenCampusAutologin.exe` bestand in de `dist` folder.
+- **Wipe vóór build:** De build wist automatisch credentials en servergegevens uit de ontwikkelmap (`src/core`), zodat er geen gevoelige data in de .exe of zip komt. Optioneel: `python wipe_before_build.py --appdata` om ook gebruikersdata (AppData) te wissen.
+- De .exe komt in de map `dist\`.
 
-Voor een complete release package:
+**Zip voor verspreiding naar andere PC's:**
 
 ```bash
-package_release.bat
+scripts\maak_zip_installatie.bat
 ```
 
-Dit maakt een `release` folder met alle benodigde bestanden.
-- `markdown` - Voor documentatie weergave in web interface
+Dit maakt `SintMaartenCampusAutologin_Installatie.zip` met de .exe, `install.bat` en **Uninstall_SintMaartenCampusAutologin.bat**. Gebruikers kunnen na installatie de applicatie verwijderen met de uninstaller (verwijdert elke geïnstalleerde versie, inclusief Program Files en AppData).
+
+Voor een complete release package (map):
+
+```bash
+scripts\package_release.bat
+```
 
 ### Stap 3: (Optioneel) Installeer PuTTY
 
