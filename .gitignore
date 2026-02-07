@@ -42,8 +42,11 @@ ssh_servers.json
 
 # Build files
 *.spec
+!SintMaartenCampusAutologin.spec
 release/
 dist/
+static_export/
+SintMaartenCampusAutologin_Installatie.zip
 
 # OS
 .DS_Store

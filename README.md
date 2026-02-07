@@ -2,8 +2,27 @@
 
 Een veilige, geautomatiseerde login tool voor het Sint Maarten Campus die automatisch kan inloggen op verschillende web services en remote connections kan beheren via een gebruiksvriendelijke web interface.
 
+---
+
+<a id="download-voor-andere-pcs"></a>
+## 📥 Download voor andere PC's
+
+**Wil je de applicatie op andere computers installeren (zonder development-omgeving)?**
+
+1. Ga naar **[Releases](https://github.com/CodeTrickz/autologin-toolsmc/releases)** op GitHub.
+2. Download bij de nieuwste release het bestand **`SintMaartenCampusAutologin_Installatie.zip`** (onder Assets).
+3. Pak de zip uit op de doel-PC.
+4. Rechtermuisknop op **`install.bat`** → **Als administrator uitvoeren**.
+5. Volg de instructies; er wordt een snelkoppeling op het bureaublad gemaakt.
+6. Start de applicatie via het icoon **Sint Maarten Campus Autologin**.
+
+De zip bevat de .exe, `install.bat` en **Uninstall_SintMaartenCampusAutologin.bat**. Er zitten geen credentials of servergegevens in.
+
+---
+
 ## 📋 Inhoudsopgave
 
+- [Download voor andere PC's](#download-voor-andere-pcs)
 - [Overzicht](#overzicht)
 - [Functionaliteiten](#functionaliteiten)
 - [Installatie](#installatie)
@@ -99,7 +118,7 @@ playwright install chromium
 
 ### Stap 2b: (Optioneel) Maak een Windows Executable
 
-Voor distributie als standalone Windows applicatie (vanuit de `scripts` map):
+Voor distributie als standalone Windows applicatie (uitvoeren vanuit de projectmap):
 
 ```bash
 scripts\build_exe.bat
@@ -115,6 +134,14 @@ scripts\maak_zip_installatie.bat
 ```
 
 Dit maakt `SintMaartenCampusAutologin_Installatie.zip` met de .exe, `install.bat` en **Uninstall_SintMaartenCampusAutologin.bat**. Gebruikers kunnen na installatie de applicatie verwijderen met de uninstaller (verwijdert elke geïnstalleerde versie, inclusief Program Files en AppData).
+
+**Zip op GitHub zetten (zodat anderen hem kunnen downloaden):**
+
+1. Maak lokaal de zip: `scripts\maak_zip_installatie.bat` (zo nodig eerst `scripts\build_exe.bat`).
+2. Run **`scripts\publish_release.bat`**:
+   - Met **GitHub CLI (`gh`)** geïnstalleerd: maakt automatisch een release met tag `v<versie>` en uploadt de zip.
+   - Zonder `gh`: opent de pagina [New release](https://github.com/CodeTrickz/autologin-toolsmc/releases/new); kies tag (bv. `v1.0.7`), sleep de zip naar de pagina en klik op **Publish release**.
+3. Daarna is de zip downloadbaar via [Releases](https://github.com/CodeTrickz/autologin-toolsmc/releases).
 
 Voor een complete release package (map):
 

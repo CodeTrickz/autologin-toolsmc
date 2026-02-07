@@ -1,0 +1,64 @@
+# Bij push van een tag v* (bijv. v1.0.7): bouw .exe, maak zip, publiceer naar GitHub Releases.
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pywebview requests
+          playwright install chromium
+
+      - name: Export static HTML
+        run: python -c "import sys; sys.path.insert(0,'.'); from src.web.export_static import export; export()"
+
+      - name: Build executable
+        run: pyinstaller SintMaartenCampusAutologin.spec --clean --noconfirm
+
+      - name: Create zip
+        run: |
+          $zipDir = "SintMaartenCampusAutologin_Installatie"
+          New-Item -ItemType Directory -Force -Path $zipDir | Out-Null
+          Copy-Item "dist\SintMaartenCampusAutologin.exe" $zipDir\
+          Copy-Item "scripts\install.bat" $zipDir\
+          Copy-Item "scripts\Uninstall_SintMaartenCampusAutologin.bat" $zipDir\
+          Copy-Item "README.md" $zipDir\
+          @"
+          Sint Maarten Campus Autologin Tool - Installatie
+          ================================================
+
+          INSTALLATIE:
+          1. Pak dit zip-bestand uit in een map.
+          2. Rechtermuisknop op install.bat -> Als administrator uitvoeren.
+          3. Start de applicatie via het bureaublad-icoon.
+
+          VERWIJDEREN: Voer Uninstall_SintMaartenCampusAutologin.bat uit.
+          "@ | Out-File -FilePath "$zipDir\INSTALLATIE.txt" -Encoding utf8
+          Compress-Archive -Path "$zipDir\*" -DestinationPath "SintMaartenCampusAutologin_Installatie.zip" -Force
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: SintMaartenCampusAutologin_Installatie.zip
+          generate_release_notes: true
+          body: |
+            Download **SintMaartenCampusAutologin_Installatie.zip** en voer op de doel-PC **install.bat** uit als administrator.
+            Geen credentials of servergegevens in de zip.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
