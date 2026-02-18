@@ -13,6 +13,8 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from src.core.credentials_manager import get_credential, get_data_dir
+from src.auto_login.browser_session import open_url_for_service
+from src.auto_login.input_utils import clear_and_human_type
 
 DATA_DIR = get_data_dir()
 CREDENTIALS_FILE = DATA_DIR / "credentials.json"
@@ -47,32 +49,23 @@ def _login_selenium_chrome() -> None:
     email = get_credential_or_fail("easy4u", "email")
     password = get_credential_or_fail("easy4u", "password")
 
-    from selenium import webdriver
-    from selenium.webdriver.chrome.service import Service as ChromeService
     from selenium.webdriver.common.by import By
     from selenium.webdriver.support.ui import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
 
-    driver = None
     try:
-        options = webdriver.ChromeOptions()
-        options.add_argument("--start-maximized")
-        driver = webdriver.Chrome(options=options, service=ChromeService())
+        driver = open_url_for_service("easy4u", LOGIN_URL, new_tab=True, account_id=email)
         wait = WebDriverWait(driver, 20)
-
-        driver.get(LOGIN_URL)
         wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "input:not([type='password']):not([type='submit']):not([type='hidden'])")))
 
         email_input = driver.find_element(
             By.CSS_SELECTOR,
             "input:not([type='password']):not([type='submit']):not([type='hidden'])",
         )
-        email_input.clear()
-        email_input.send_keys(email)
+        clear_and_human_type(email_input, email)
 
         pwd_input = driver.find_element(By.CSS_SELECTOR, "input[type='password']")
-        pwd_input.clear()
-        pwd_input.send_keys(password)
+        clear_and_human_type(pwd_input, password)
 
         try:
             login_btn = driver.find_element(By.CSS_SELECTOR, "input[type='submit']")
@@ -97,11 +90,10 @@ def _login_selenium_chrome() -> None:
             except Exception:
                 print("Pagina na login:", url)
 
-        if sys.stdin.isatty() and not getattr(sys, "frozen", False):
-            input("Druk op Enter om de browser te sluiten...")
+        print("Easy4U login uitgevoerd in gedeelde browser-sessie (tab blijft open).")
     finally:
-        if driver:
-            driver.quit()
+        # Browser blijft bewust open voor sessiebehoud.
+        pass
 
 
 def login_easy4u() -> None:

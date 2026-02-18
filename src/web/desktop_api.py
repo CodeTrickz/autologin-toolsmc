@@ -54,25 +54,21 @@ class DesktopAPI:
         credentials = load_credentials()
 
         if service == "smartschool":
-            email = sanitize_string(data.get("email", ""))
+            username = sanitize_string(data.get("username", "") or data.get("email", ""))
             password = data.get("password", "")
-            if not email:
-                return {"success": False, "error": "E-mail is verplicht"}
-            if not validate_email(email):
-                return {"success": False, "error": "Ongeldig e-mail adres"}
+            if not username:
+                return {"success": False, "error": "Gebruikersnaam is verplicht"}
             if not password:
                 return {"success": False, "error": "Wachtwoord is verplicht"}
-            credentials["smartschool"] = {"email": email, "password": password}
+            credentials["smartschool"] = {"username": username, "email": username, "password": password}
         elif service == "smartschool_admin":
-            email = sanitize_string(data.get("email", ""))
+            username = sanitize_string(data.get("username", "") or data.get("email", ""))
             password = data.get("password", "")
-            if not email:
-                return {"success": False, "error": "E-mail is verplicht"}
-            if not validate_email(email):
-                return {"success": False, "error": "Ongeldig e-mail adres"}
+            if not username:
+                return {"success": False, "error": "Gebruikersnaam is verplicht"}
             if not password:
                 return {"success": False, "error": "Wachtwoord is verplicht"}
-            credentials["smartschool_admin"] = {"email": email, "password": password}
+            credentials["smartschool_admin"] = {"username": username, "email": username, "password": password}
         elif service == "microsoft_admin":
             url = sanitize_string(data.get("url", "https://admin.microsoft.com"))
             email = sanitize_string(data.get("email", ""))
@@ -255,7 +251,7 @@ class DesktopAPI:
             return {"success": False, "error": str(e)}
 
     def run_utility(self, utility):
-        valid = ["clean_credentials", "migrate_key", "security_test", "clean_servers"]
+        valid = ["clean_credentials", "migrate_key", "security_test", "clean_servers", "clear_browser_data"]
         if utility not in valid:
             return {"success": False, "error": "Onbekende utility"}
         try:
@@ -277,6 +273,10 @@ class DesktopAPI:
                 from src.core.clean_servers import clean_all_servers
                 result = clean_all_servers()
                 return {"success": result.get("success", False), "message": result.get("message", "Servers opgeschoond"), "utility": utility, "result": result}
+            elif utility == "clear_browser_data":
+                from src.auto_login.browser_cleanup import clear_browser_data
+                result = clear_browser_data(force_kill=True)
+                return {"success": result.get("success", False), "message": result.get("message", "Browser data gewist"), "utility": utility, "result": result}
         except Exception as e:
             return {"success": False, "error": str(e), "utility": utility}
 

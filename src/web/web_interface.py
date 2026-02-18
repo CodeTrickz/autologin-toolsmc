@@ -48,7 +48,7 @@ app = Flask(__name__, template_folder=str(TEMPLATES_DIR))
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-key-change-in-production")
 
 # Applicatieversie (één plek; ook zichtbaar in webinterface en API)
-APP_VERSION = "1.0.11"
+APP_VERSION = "2.0.0"
 DATA_DIR = get_data_dir()
 RDP_SERVERS_FILE = DATA_DIR / "rdp_servers.json"
 SSH_SERVERS_FILE = DATA_DIR / "ssh_servers.json"
@@ -266,7 +266,7 @@ def api_version():
 @app.route("/api/utilities/<utility>", methods=["POST"])
 def run_utility(utility):
     """Voer een utility script uit."""
-    valid_utilities = ["clean_credentials", "migrate_key", "security_test", "clean_servers"]
+    valid_utilities = ["clean_credentials", "migrate_key", "security_test", "clean_servers", "clear_browser_data"]
     
     if utility not in valid_utilities:
         return jsonify({"success": False, "error": "Onbekende utility"}), 400
@@ -310,6 +310,16 @@ def run_utility(utility):
             return jsonify({
                 "success": result.get("success", False),
                 "message": result.get("message", "Servers opgeschoond"),
+                "utility": utility,
+                "result": result
+            })
+
+        elif utility == "clear_browser_data":
+            from src.auto_login.browser_cleanup import clear_browser_data
+            result = clear_browser_data(force_kill=True)
+            return jsonify({
+                "success": result.get("success", False),
+                "message": result.get("message", "Browser data gewist"),
                 "utility": utility,
                 "result": result
             })
@@ -404,8 +414,8 @@ def start_login(service):
     credentials = load_credentials()
     
     required_fields = {
-        "smartschool": ["email", "password"],
-        "smartschool_admin": ["email", "password"],
+        "smartschool": ["password"],
+        "smartschool_admin": ["password"],
         "microsoft_admin": ["url", "email", "password"],
         "google_admin": ["url", "email", "password"],
         "easy4u": ["url", "email", "password"],
@@ -423,6 +433,9 @@ def start_login(service):
     for field in required_fields.get(service, []):
         if not service_creds.get(field) or service_creds.get(field).strip() == "":
             missing_fields.append(field)
+    if service in {"smartschool", "smartschool_admin"}:
+        if not (service_creds.get("username") or service_creds.get("email")):
+            missing_fields.append("username/email")
     
     if missing_fields:
         return jsonify({
@@ -636,33 +649,31 @@ def save_service_credentials(service):
     
     # Valideer en sanitize input
     if service == "smartschool":
-        email = sanitize_string(data.get("email", ""))
+        username = sanitize_string(data.get("username", "") or data.get("email", ""))
         password = data.get("password", "")  # Wachtwoord niet sanitizen (wordt encrypted)
-        
-        if not email:
-            return jsonify({"success": False, "error": "E-mail is verplicht"}), 400
-        if not validate_email(email):
-            return jsonify({"success": False, "error": "Ongeldig e-mail adres"}), 400
+
+        if not username:
+            return jsonify({"success": False, "error": "Gebruikersnaam is verplicht"}), 400
         if not password:
             return jsonify({"success": False, "error": "Wachtwoord is verplicht"}), 400
-        
+
         credentials["smartschool"] = {
-            "email": email,
+            "username": username,
+            "email": username,
             "password": password,
         }
     elif service == "smartschool_admin":
-        email = sanitize_string(data.get("email", ""))
+        username = sanitize_string(data.get("username", "") or data.get("email", ""))
         password = data.get("password", "")
-        
-        if not email:
-            return jsonify({"success": False, "error": "E-mail is verplicht"}), 400
-        if not validate_email(email):
-            return jsonify({"success": False, "error": "Ongeldig e-mail adres"}), 400
+
+        if not username:
+            return jsonify({"success": False, "error": "Gebruikersnaam is verplicht"}), 400
         if not password:
             return jsonify({"success": False, "error": "Wachtwoord is verplicht"}), 400
-        
+
         credentials["smartschool_admin"] = {
-            "email": email,
+            "username": username,
+            "email": username,
             "password": password,
         }
     elif service == "microsoft_admin":

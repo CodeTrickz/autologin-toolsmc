@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Sint Maarten Campus Autologin Tool{% endblock %}</title>
+    <title>{% block title %}Sint Maarten Campus Autologin Tool{% endblock %}{% if app_version is defined and app_version %} v{{ app_version }}{% endif %}</title>
     <style>
         * {
             margin: 0;

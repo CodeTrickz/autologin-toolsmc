@@ -46,7 +46,9 @@ ssh_servers.json
 release/
 dist/
 static_export/
+# Installatie-zip niet in repo (groot; wordt via GitHub Releases verspreid)
 SintMaartenCampusAutologin_Installatie.zip
+SintMaartenCampusAutologin.zip
 
 # OS
 .DS_Store

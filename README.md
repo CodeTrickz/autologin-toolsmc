@@ -67,6 +67,18 @@ De tool ondersteunt automatische login voor de volgende services:
 
 **Belangrijk:** Je kunt geen nieuwe auto-login services toevoegen via de web interface. Alleen de bovenstaande 5 services zijn ondersteund. Voor nieuwe services is code-aanpassing nodig.
 
+### Browser / sessie gedrag (belangrijk)
+
+De auto-login modules gebruiken Selenium + Chrome. Sinds `v2.0.0` is er extra focus op:
+
+- **1 gedeelde Chrome-sessie + tabbladen** voor niet-incognito logins (geen nieuwe Chrome per klik)
+- **Smartschool username** login kan **incognito** openen (cookie-isolatie)
+- **Microsoft account-conflict preventie**: voor Microsoft-flows wordt Microsoft site-data (cookies + storage) gewist vóór login zodat een eerder account niet automatisch wordt hergebruikt
+- **"Stay signed in?"** wordt altijd op **Nee** geklikt bij Microsoft
+- **Menselijk maar sneller typen**: e-mail/wachtwoord worden karakter per karakter ingevuld, maar sneller dan vroeger
+
+Let op: Microsoft cookies/storage zijn gedeeld binnen dezelfde Chrome-profielsessie. Als je meerdere Microsoft-logins tegelijk open hebt in tabs, kan wissen van Microsoft site-data andere Microsoft-tabs beïnvloeden.
+
 ### Remote Connections
 
 #### RDP Servers
@@ -136,7 +148,7 @@ Dit maakt `SintMaartenCampusAutologin_Installatie.zip` met de .exe, `install.bat
 1. Maak lokaal de zip: `scripts\maak_zip_installatie.bat` (zo nodig eerst `scripts\build_exe.bat`).
 2. Run **`scripts\publish_release.bat`**:
    - Met **GitHub CLI (`gh`)** geïnstalleerd: maakt automatisch een release met tag `v<versie>` en uploadt de zip.
-   - Zonder `gh`: opent de pagina [New release](https://github.com/CodeTrickz/autologin-toolsmc/releases/new); kies tag (bv. `v1.0.11`), sleep de zip naar de pagina en klik op **Publish release**.
+   - Zonder `gh`: opent de pagina [New release](https://github.com/CodeTrickz/autologin-toolsmc/releases/new); kies tag (bv. `v2.0.0`), sleep de zip naar de pagina en klik op **Publish release**.
 3. Daarna is de zip downloadbaar via [Releases](https://github.com/CodeTrickz/autologin-toolsmc/releases).
 
 Voor een complete release package (map):
@@ -175,11 +187,13 @@ Voor automatische SSH wachtwoord authenticatie (optioneel):
 Voor elke auto-login service moet je de volgende gegevens invullen:
 
 #### Smartschool
-- **E-mail:** Je Microsoft e-mail adres
+- **Gebruikersnaam of e-mail:**  
+  - Vul een **gebruikersnaam** in als je via de standaard Smartschool-login inlogt  
+  - Vul een **e-mail** in als je via **Microsoft** (knop op Smartschool loginpagina) inlogt
 - **Wachtwoord:** Je Microsoft wachtwoord
 
 #### Smartschool Beheerder
-- **E-mail:** Beheerders-Microsoft e-mail adres
+- **Gebruikersnaam of e-mail:** (zelfde regels als Smartschool, maar voor beheerder)
 - **Wachtwoord:** Beheerders-wachtwoord (zelfde loginflow als Smartschool)
 
 #### Microsoft Admin
@@ -278,6 +292,11 @@ De web interface bevat een Utilities pagina waar je verschillende onderhoudstake
 - Toont gedetailleerde resultaten per server type
 
 **Let op:** Deze actie kan niet ongedaan worden gemaakt. Alle servers worden permanent verwijderd uit de applicatie. Je kunt daarna nieuwe servers toevoegen via de web interface.
+
+### Wis Browser Cookies
+- Wist browserprofielen/cookies die door de tool zijn aangemaakt/gebruikte (gericht op tool-data)
+- Handig als een site automatisch een verkeerd account probeert te hergebruiken
+- Op Windows kan dit tool-Chrome processen sluiten als ze nog open staan
 
 ## 📚 Documentatie
 
@@ -547,11 +566,22 @@ Deze tool is ontwikkeld voor intern gebruik bij Sint-Maarten Campus.
 
 ---
 
-**Versie:** 1.0.11  
+**Versie:** 2.0.0  
 **Laatste update:** Februari 2026  
 **Auteur:** Wesley Van Hoof
 
 ### Changelog
+
+#### Versie 2.0.0 (Februari 2026)
+- ✅ **Browser sessies:** gedeelde Chrome-sessie + tabbladen voor niet-incognito auto-logins
+- ✅ **Smartschool:** ondersteuning voor 2 loginpaden:
+  - username + wachtwoord (standaard Smartschool login)
+  - e-mail + wachtwoord (via Microsoft-knop)
+- ✅ **Incognito:** username Smartschool kan incognito openen voor cookie-isolatie
+- ✅ **Microsoft:** "Stay signed in?" altijd **Nee**
+- ✅ **Microsoft account-conflicts:** Microsoft site-data (cookies + storage) wordt vóór login gewist om hergebruik van vorige account te vermijden
+- ✅ **Utilities:** knop toegevoegd om browser cookies/profielen te wissen
+- ✅ **Typing:** sneller maar menselijk invullen van e-mail/wachtwoord (instelbaar via env vars)
 
 #### Versie 1.0.9 (Februari 2026)
 - ✅ **Release:** Wipe van credentials en servers vóór elke build in de workflow; schone zip zonder login-restanten
