@@ -274,6 +274,8 @@ def sync_to_env(credentials: dict, env_file: Path, scripts_dir: Path) -> bool:
         cred_keys = [
             "MS_EMAIL", "MS_PASSWORD",
             "MS_ADMIN_URL", "MS_ADMIN_EMAIL", "MS_ADMIN_PASSWORD",
+            "INTUNE_ADMIN_URL", "INTUNE_ADMIN_EMAIL", "INTUNE_ADMIN_PASSWORD",
+            "AZURE_ADMIN_URL", "AZURE_ADMIN_EMAIL", "AZURE_ADMIN_PASSWORD",
             "GOOGLE_ADMIN_URL", "GOOGLE_ADMIN_EMAIL", "GOOGLE_ADMIN_PASSWORD",
             "EASY4U_URL", "EASY4U_EMAIL", "EASY4U_PASSWORD",
         ]
@@ -284,6 +286,12 @@ def sync_to_env(credentials: dict, env_file: Path, scripts_dir: Path) -> bool:
         # Alleen URL's en emails voor referentie, maar modules lezen direct uit encrypted credentials
         if "microsoft_admin" in credentials:
             env_lines.append(f"MS_ADMIN_URL={credentials['microsoft_admin'].get('url', 'https://admin.microsoft.com')}\n")
+
+        if "intune_admin" in credentials:
+            env_lines.append(f"INTUNE_ADMIN_URL={credentials['intune_admin'].get('url', 'https://intune.microsoft.com')}\n")
+
+        if "azure_admin" in credentials:
+            env_lines.append(f"AZURE_ADMIN_URL={credentials['azure_admin'].get('url', 'https://portal.azure.com')}\n")
         
         if "google_admin" in credentials:
             env_lines.append(f"GOOGLE_ADMIN_URL={credentials['google_admin'].get('url', 'https://admin.google.com')}\n")

@@ -52,6 +52,7 @@ def export():
     pages = [
         ("index.html", "index.html", {}),
         ("auto_login.html", "auto_login.html", {}),
+        ("auto_login_beheer.html", "auto_login_beheer.html", {}),
         ("credentials.html", "credentials.html", {}),
         ("remote_connections.html", "remote_connections.html", {}),
         ("utilities.html", "utilities.html", {}),

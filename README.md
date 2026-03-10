@@ -148,7 +148,7 @@ Dit maakt `SintMaartenCampusAutologin_Installatie.zip` met de .exe, `install.bat
 1. Maak lokaal de zip: `scripts\maak_zip_installatie.bat` (zo nodig eerst `scripts\build_exe.bat`).
 2. Run **`scripts\publish_release.bat`**:
    - Met **GitHub CLI (`gh`)** geïnstalleerd: maakt automatisch een release met tag `v<versie>` en uploadt de zip.
-   - Zonder `gh`: opent de pagina [New release](https://github.com/CodeTrickz/autologin-toolsmc/releases/new); kies tag (bv. `v2.0.0`), sleep de zip naar de pagina en klik op **Publish release**.
+   - Zonder `gh`: opent de pagina [New release](https://github.com/CodeTrickz/autologin-toolsmc/releases/new); kies tag (bv. `v2.0.1`), sleep de zip naar de pagina en klik op **Publish release**.
 3. Daarna is de zip downloadbaar via [Releases](https://github.com/CodeTrickz/autologin-toolsmc/releases).
 
 Voor een complete release package (map):
@@ -566,11 +566,20 @@ Deze tool is ontwikkeld voor intern gebruik bij Sint-Maarten Campus.
 
 ---
 
-**Versie:** 2.0.0  
+**Versie:** 2.0.1  
 **Laatste update:** Februari 2026  
 **Auteur:** Wesley Van Hoof
 
 ### Changelog
+
+#### Versie 2.0.1 (Februari 2026)
+- ✅ **Auto Login opsplitsing:** nieuwe pagina **Auto Login Beheer** toegevoegd
+- ✅ **Auto Login:** bevat nu enkel Smartschool + Easy4U voor dagelijkse flow
+- ✅ **Auto Login Beheer:** bevat Smartschool Beheerder, Microsoft Admin, Google Admin, Intune Admin en Azure Admin
+- ✅ **Nieuwe services:** `intune_admin` (`https://intune.microsoft.com`) en `azure_admin` (`https://portal.azure.com`) met dezelfde Microsoft-loginflow als Microsoft Admin
+- ✅ **Credentials/API:** Intune en Azure toegevoegd aan credentials-formulier, Flask API, Desktop API en service-validatie
+- ✅ **Stabiliteit:** Google Admin login terug op standaard Selenium-architectuur binnen gedeelde browser-sessie
+- ✅ **Project hygiene:** Chrome runtime-profielmappen toegevoegd aan `.gitignore` voor een schonere werkboom
 
 #### Versie 2.0.0 (Februari 2026)
 - ✅ **Browser sessies:** gedeelde Chrome-sessie + tabbladen voor niet-incognito auto-logins

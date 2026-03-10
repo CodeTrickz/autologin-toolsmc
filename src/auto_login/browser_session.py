@@ -84,7 +84,14 @@ def _requires_account_isolation(service: str) -> bool:
     Services die via Microsoft-accountcookies snel conflicteren tussen accounts.
     Voor deze services isoleren we standaard per account-id.
     """
-    return service in {"smartschool", "smartschool_admin", "microsoft_admin", "google_admin"}
+    return service in {
+        "smartschool",
+        "smartschool_admin",
+        "microsoft_admin",
+        "google_admin",
+        "intune_admin",
+        "azure_admin",
+    }
 
 
 def incognito_for_service(service: str) -> bool:

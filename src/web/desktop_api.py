@@ -95,6 +95,32 @@ class DesktopAPI:
             if not password:
                 return {"success": False, "error": "Wachtwoord is verplicht"}
             credentials["google_admin"] = {"url": url, "email": email, "password": password}
+        elif service == "intune_admin":
+            url = sanitize_string(data.get("url", "https://intune.microsoft.com"))
+            email = sanitize_string(data.get("email", ""))
+            password = data.get("password", "")
+            if not validate_url(url):
+                return {"success": False, "error": "Ongeldige URL"}
+            if not email:
+                return {"success": False, "error": "E-mail is verplicht"}
+            if not validate_email(email):
+                return {"success": False, "error": "Ongeldig e-mail adres"}
+            if not password:
+                return {"success": False, "error": "Wachtwoord is verplicht"}
+            credentials["intune_admin"] = {"url": url, "email": email, "password": password}
+        elif service == "azure_admin":
+            url = sanitize_string(data.get("url", "https://portal.azure.com"))
+            email = sanitize_string(data.get("email", ""))
+            password = data.get("password", "")
+            if not validate_url(url):
+                return {"success": False, "error": "Ongeldige URL"}
+            if not email:
+                return {"success": False, "error": "E-mail is verplicht"}
+            if not validate_email(email):
+                return {"success": False, "error": "Ongeldig e-mail adres"}
+            if not password:
+                return {"success": False, "error": "Wachtwoord is verplicht"}
+            credentials["azure_admin"] = {"url": url, "email": email, "password": password}
         elif service == "easy4u":
             # Altijd de officiële Nederlandse login-URL gebruiken (niet my.easy4u.be)
             url = "https://easy4u.nl/admin/"
@@ -229,18 +255,22 @@ class DesktopAPI:
             return {"success": False, "error": str(e)}
 
     def login(self, service):
-        valid = ["smartschool", "smartschool_admin", "microsoft_admin", "google_admin", "easy4u"]
+        valid = ["smartschool", "smartschool_admin", "microsoft_admin", "intune_admin", "azure_admin", "google_admin", "easy4u"]
         if service not in valid:
             return {"success": False, "error": "Onbekende service"}
         try:
             from src.auto_login.auto_smartschool_login import login_smartschool_via_microsoft, login_smartschool_admin_via_microsoft
             from src.auto_login.auto_microsoft_admin_login import login_microsoft_admin
+            from src.auto_login.auto_intune_admin_login import login_intune_admin
+            from src.auto_login.auto_azure_admin_login import login_azure_admin
             from src.auto_login.auto_google_admin_login import login_google_admin
             from src.auto_login.auto_easy4u_login import login_easy4u
             funcs = {
                 "smartschool": login_smartschool_via_microsoft,
                 "smartschool_admin": login_smartschool_admin_via_microsoft,
                 "microsoft_admin": login_microsoft_admin,
+                "intune_admin": login_intune_admin,
+                "azure_admin": login_azure_admin,
                 "google_admin": login_google_admin,
                 "easy4u": login_easy4u,
             }

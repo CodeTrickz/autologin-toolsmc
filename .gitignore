@@ -39,6 +39,9 @@ credentials.json
 rdp_servers.json
 ssh_servers.json
 *.key
+src/core/chrome_user_data/
+src/core/chrome_profiles/
+src/core/chrome_user_data_isolated/
 
 # Build files
 *.spec

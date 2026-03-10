@@ -15,6 +15,8 @@ if str(SCRIPTS_DIR) not in sys.path:
 # Import login modules
 from src.auto_login.auto_smartschool_login import login_smartschool_via_microsoft, login_smartschool_admin_via_microsoft
 from src.auto_login.auto_microsoft_admin_login import login_microsoft_admin
+from src.auto_login.auto_intune_admin_login import login_intune_admin
+from src.auto_login.auto_azure_admin_login import login_azure_admin
 from src.auto_login.auto_google_admin_login import login_google_admin
 from src.auto_login.auto_easy4u_login import login_easy4u
 
@@ -48,7 +50,7 @@ app = Flask(__name__, template_folder=str(TEMPLATES_DIR))
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-key-change-in-production")
 
 # Applicatieversie (één plek; ook zichtbaar in webinterface en API)
-APP_VERSION = "2.0.0"
+APP_VERSION = "2.0.1"
 DATA_DIR = get_data_dir()
 RDP_SERVERS_FILE = DATA_DIR / "rdp_servers.json"
 SSH_SERVERS_FILE = DATA_DIR / "ssh_servers.json"
@@ -236,6 +238,12 @@ def auto_login():
     return render_template("auto_login.html")
 
 
+@app.route("/auto-login-beheer")
+def auto_login_beheer():
+    """Auto login beheer pagina."""
+    return render_template("auto_login_beheer.html")
+
+
 @app.route("/credentials")
 def credentials_page():
     """Credentials beheer pagina."""
@@ -406,6 +414,8 @@ def start_login(service):
         "smartschool": login_smartschool_via_microsoft,
         "smartschool_admin": login_smartschool_admin_via_microsoft,
         "microsoft_admin": login_microsoft_admin,
+        "intune_admin": login_intune_admin,
+        "azure_admin": login_azure_admin,
         "google_admin": login_google_admin,
         "easy4u": login_easy4u,
     }
@@ -417,6 +427,8 @@ def start_login(service):
         "smartschool": ["password"],
         "smartschool_admin": ["password"],
         "microsoft_admin": ["url", "email", "password"],
+        "intune_admin": ["url", "email", "password"],
+        "azure_admin": ["url", "email", "password"],
         "google_admin": ["url", "email", "password"],
         "easy4u": ["url", "email", "password"],
     }
@@ -710,6 +722,44 @@ def save_service_credentials(service):
             return jsonify({"success": False, "error": "Wachtwoord is verplicht"}), 400
         
         credentials["google_admin"] = {
+            "url": url,
+            "email": email,
+            "password": password,
+        }
+    elif service == "intune_admin":
+        url = sanitize_string(data.get("url", "https://intune.microsoft.com"))
+        email = sanitize_string(data.get("email", ""))
+        password = data.get("password", "")
+
+        if not validate_url(url):
+            return jsonify({"success": False, "error": "Ongeldige URL"}), 400
+        if not email:
+            return jsonify({"success": False, "error": "E-mail is verplicht"}), 400
+        if not validate_email(email):
+            return jsonify({"success": False, "error": "Ongeldig e-mail adres"}), 400
+        if not password:
+            return jsonify({"success": False, "error": "Wachtwoord is verplicht"}), 400
+
+        credentials["intune_admin"] = {
+            "url": url,
+            "email": email,
+            "password": password,
+        }
+    elif service == "azure_admin":
+        url = sanitize_string(data.get("url", "https://portal.azure.com"))
+        email = sanitize_string(data.get("email", ""))
+        password = data.get("password", "")
+
+        if not validate_url(url):
+            return jsonify({"success": False, "error": "Ongeldige URL"}), 400
+        if not email:
+            return jsonify({"success": False, "error": "E-mail is verplicht"}), 400
+        if not validate_email(email):
+            return jsonify({"success": False, "error": "Ongeldig e-mail adres"}), 400
+        if not password:
+            return jsonify({"success": False, "error": "Wachtwoord is verplicht"}), 400
+
+        credentials["azure_admin"] = {
             "url": url,
             "email": email,
             "password": password,

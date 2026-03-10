@@ -1,17 +1,26 @@
 {% extends "base.html" %}
 
-{% block title %}Auto Login{% endblock %}
+{% block title %}Auto Login Beheer{% endblock %}
 
 {% block content %}
 <div class="section">
-    <h2>🌐 Auto Login</h2>
-    <p style="color: #666; margin-bottom: 20px;">Snelle auto-login voor dagelijkse platformen.</p>
+    <h2>🛠️ Auto Login Beheer</h2>
+    <p style="color: #666; margin-bottom: 20px;">Beheer- en adminplatformen in één overzicht.</p>
     <div class="buttons-grid">
-        <button class="btn btn-login" onclick="startLogin('smartschool', this)">
-            📚 Smartschool
+        <button class="btn btn-login" onclick="startLogin('smartschool_admin', this)">
+            📚 Smartschool Beheerder
         </button>
-        <button class="btn btn-login" onclick="startLogin('easy4u', this)">
-            💼 Easy4U
+        <button class="btn btn-login" onclick="startLogin('microsoft_admin', this)">
+            🔷 Microsoft Admin
+        </button>
+        <button class="btn btn-login" onclick="startLogin('intune_admin', this)">
+            🛡️ Intune Admin
+        </button>
+        <button class="btn btn-login" onclick="startLogin('azure_admin', this)">
+            ☁️ Azure Admin
+        </button>
+        <button class="btn btn-login" onclick="startLogin('google_admin', this)">
+            🔍 Google Admin
         </button>
     </div>
 </div>
@@ -21,7 +30,6 @@
 {{ super() }}
 <script>
     function showAlert(message, type = 'success') {
-        // Maak een alert container als die niet bestaat
         let container = document.getElementById('alert-container');
         if (!container) {
             container = document.createElement('div');
@@ -32,7 +40,7 @@
             container.style.zIndex = '9999';
             document.body.appendChild(container);
         }
-        
+
         const alert = document.createElement('div');
         alert.className = `alert alert-${type}`;
         alert.textContent = message;
@@ -42,7 +50,7 @@
         alert.style.marginBottom = '10px';
         alert.style.minWidth = '300px';
         container.appendChild(alert);
-        
+
         setTimeout(() => {
             alert.style.display = 'none';
             alert.remove();
@@ -58,8 +66,6 @@
 
         try {
             let data;
-
-            // Prefer de appApi bridge (werkt in desktop/pywebview en in Flask via fallback).
             if (window.appApi && typeof window.appApi.login === 'function') {
                 data = await window.appApi.login(service);
             } else {
