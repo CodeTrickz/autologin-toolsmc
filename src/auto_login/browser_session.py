@@ -21,6 +21,12 @@ from src.auto_login import browser_cleanup  # noqa: F401  (registers atexit clea
 
 _DRIVER_LOCK = threading.Lock()
 _SHARED_DRIVER = None
+_HARDENED_ADMIN_SERVICES = {
+    "microsoft_admin",
+    "intune_admin",
+    "azure_admin",
+    "google_admin",
+}
 
 
 def _is_truthy(value: str | None) -> bool:
@@ -107,6 +113,16 @@ def incognito_for_service(service: str) -> bool:
     incognito = _parse_csv_set(os.environ.get("AUTO_LOGIN_INCOGNITO_SERVICES"))
     return service in incognito
 
+
+def hardened_admin_session(service: str) -> bool:
+    """
+    Beheerportalen draaien standaard in een tijdelijke, geïsoleerde incognito sessie.
+    Dit verkleint cookie-hergebruik en sessiepersistentie op admin accounts.
+    """
+    if _is_truthy(os.environ.get("AUTO_LOGIN_DISABLE_ADMIN_HARDENING")):
+        return False
+    return service in _HARDENED_ADMIN_SERVICES
+
 def _default_user_data_dir() -> Path:
     data_dir = Path(get_data_dir())
     default_profile_dir = data_dir / "chrome_user_data"
@@ -148,8 +164,21 @@ def _build_options(
     options = webdriver.ChromeOptions()
     options.add_argument("--start-maximized")
     options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_argument("--disable-sync")
+    options.add_argument("--disable-background-networking")
+    options.add_argument("--disable-component-update")
+    options.add_argument("--disable-features=PasswordManagerOnboarding,PasswordImport,AutofillServerCommunication")
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option("useAutomationExtension", False)
+    options.add_experimental_option(
+        "prefs",
+        {
+            "credentials_enable_service": False,
+            "profile.password_manager_enabled": False,
+            "autofill.profile_enabled": False,
+            "autofill.credit_card_enabled": False,
+        },
+    )
     # In een desktop-app is "detach" meestal niet nodig: zolang de app draait
     # blijft de driver leven. Detach kan wel handig zijn, maar veroorzaakt vaak
     # "user data dir is already in use" bij een volgende app-run.
@@ -263,6 +292,9 @@ def open_url_for_service(service: str, url: str, *, new_tab: bool = True, accoun
     - isolated session: aparte Chrome instance voor cookie-isolatie
     """
     global _SHARED_DRIVER
+
+    if hardened_admin_session(service):
+        return open_url_in_isolated_session(url, incognito=True)
 
     if _tabs_only_mode():
         try:

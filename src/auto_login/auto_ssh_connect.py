@@ -3,6 +3,85 @@ import subprocess
 from pathlib import Path
 
 
+def _ssh_target(host: str, user: str | None) -> str:
+    return f"{user}@{host}" if user else host
+
+
+def _openssh_available() -> bool:
+    try:
+        result = subprocess.run(
+            ["ssh", "-V"],
+            capture_output=True,
+            creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+        )
+        stdout = result.stdout.decode(errors="ignore")
+        stderr = result.stderr.decode(errors="ignore")
+        return result.returncode == 0 or "OpenSSH" in stdout or "OpenSSH" in stderr
+    except FileNotFoundError:
+        return False
+
+
+def _find_putty_tools() -> tuple[str | None, str | None]:
+    putty_paths = [
+        r"C:\Program Files\PuTTY\putty.exe",
+        r"C:\Program Files (x86)\PuTTY\putty.exe",
+        os.path.expanduser(r"~\AppData\Local\Programs\PuTTY\putty.exe"),
+    ]
+
+    for path in putty_paths:
+        if Path(path).exists():
+            putty_dir = Path(path).parent
+            plink_path = putty_dir / "plink.exe"
+            return path, str(plink_path) if plink_path.exists() else None
+    return None, None
+
+
+def _existing_key_file(key_file: str | None) -> str | None:
+    if key_file and Path(key_file).exists():
+        return str(Path(key_file))
+    return None
+
+
+def _build_windows_command(host: str, user: str | None, port: int, key_file: str | None, password: str | None) -> list[str]:
+    target = _ssh_target(host, user)
+    key_path = _existing_key_file(key_file)
+
+    if _openssh_available():
+        command = ["ssh"]
+        if port != 22:
+            command.extend(["-p", str(port)])
+        if key_path:
+            command.extend(["-i", key_path])
+        command.append(target)
+        # OpenSSH ondersteunt bewust geen wachtwoord via command line.
+        return command
+
+    putty_exe, plink_exe = _find_putty_tools()
+    if password and plink_exe and not key_path:
+        command = [plink_exe]
+        if port != 22:
+            command.extend(["-P", str(port)])
+        command.extend([target, "-pw", password])
+        return command
+
+    if putty_exe:
+        command = [putty_exe]
+        if port != 22:
+            command.extend(["-P", str(port)])
+        if key_path:
+            command.extend(["-i", key_path])
+        command.append(target)
+        return command
+
+    command = ["ssh"]
+    if port != 22:
+        command.extend(["-p", str(port)])
+    if key_path:
+        command.extend(["-i", key_path])
+    command.append(target)
+    return command
+
+
 def _start_single_ssh(host: str, user: str | None, port: int = 22, key_file: str | None = None, password: str | None = None) -> None:
     """
     Start één SSH-sessie in een CMD prompt venster.
@@ -14,106 +93,16 @@ def _start_single_ssh(host: str, user: str | None, port: int = 22, key_file: str
         key_file: Pad naar private key bestand (optioneel)
         password: Wachtwoord (optioneel, wordt gebruikt als key_file niet is opgegeven)
     """
-    # Gebruik altijd OpenSSH (standaard SSH client op Windows 10+)
-    # Check of OpenSSH beschikbaar is
-    ssh_available = False
     try:
-        result = subprocess.run(
-            ["ssh", "-V"],
-            capture_output=True,
-            creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
-        )
-        if result.returncode == 0 or "OpenSSH" in result.stderr.decode() or "OpenSSH" in result.stdout.decode():
-            ssh_available = True
-    except FileNotFoundError:
-        pass
-    
-    if ssh_available:
-        # Gebruik OpenSSH (normale SSH emulator)
-        if user:
-            ssh_target = f"{user}@{host}"
-        else:
-            ssh_target = host
-        
-        ssh_command = f"ssh {ssh_target}"
-        
-        if port != 22:
-            ssh_command += f" -p {port}"
-        
-        if key_file and Path(key_file).exists():
-            ssh_command += f" -i \"{key_file}\""
-        
-        # OpenSSH ondersteunt geen wachtwoord via command line (veiligheid)
-        # Wachtwoord moet handmatig worden ingevoerd in de CMD prompt
-        # Dit is de normale en veilige manier om SSH te gebruiken
-    else:
-        # OpenSSH niet beschikbaar, probeer PuTTY als fallback
-        putty_paths = [
-            r"C:\Program Files\PuTTY\putty.exe",
-            r"C:\Program Files (x86)\PuTTY\putty.exe",
-            os.path.expanduser(r"~\AppData\Local\Programs\PuTTY\putty.exe"),
-        ]
-        
-        putty_dir = None
-        putty_exe = None
-        plink_exe = None
-        for path in putty_paths:
-            if Path(path).exists():
-                putty_exe = path
-                putty_dir = Path(path).parent
-                if (putty_dir / "plink.exe").exists():
-                    plink_exe = str(putty_dir / "plink.exe")
-                break
-        
-        # Als er een wachtwoord is en plink beschikbaar, gebruik plink
-        if password and plink_exe:
-            if user:
-                ssh_target = f"{user}@{host}"
-            else:
-                ssh_target = host
-            
-            ssh_command = f'"{plink_exe}" {ssh_target}'
-            
-            if port != 22:
-                ssh_command += f" -P {port}"
-            
-            if key_file and Path(key_file).exists():
-                ssh_command += f' -i "{key_file}"'
-            else:
-                ssh_command += f' -pw "{password}"'
-        elif putty_exe:
-            # Gebruik PuTTY GUI
-            if user:
-                ssh_target = f"{user}@{host}"
-            else:
-                ssh_target = host
-            
-            ssh_command = f'"{putty_exe}" {ssh_target}'
-            
-            if port != 22:
-                ssh_command += f" -P {port}"
-            
-            if key_file and Path(key_file).exists():
-                ssh_command += f' -i "{key_file}"'
-        else:
-            # Fallback: probeer gewoon ssh.exe
-            ssh_command = f"ssh {user + '@' if user else ''}{host}"
-            if port != 22:
-                ssh_command += f" -p {port}"
-    
-    # Start CMD prompt met SSH commando
-    try:
-        # Start een nieuwe CMD prompt venster en voer het SSH commando direct uit
-        # /k houdt het venster open na het commando
         if os.name == "nt":  # Windows
-            # Gebruik start cmd om een nieuw venster te openen
-            # /k houdt het venster open, /c voert het commando uit
             subprocess.Popen(
-                f'start "SSH - {host}" cmd /k "{ssh_command}"',
-                shell=True
+                _build_windows_command(host, user, port, key_file, password),
+                creationflags=subprocess.CREATE_NEW_CONSOLE,
+                shell=False,
             )
         else:  # Linux/macOS
-            subprocess.Popen(["xterm", "-e", ssh_command] + [";", "bash"])
+            command = _build_windows_command(host, user, port, key_file, password)
+            subprocess.Popen(["xterm", "-e", *command])
     except Exception as e:
         raise RuntimeError(f"Kon SSH verbinding naar {host} niet starten: {e}")
 

@@ -25,6 +25,7 @@ RDP_SERVERS_FILE = DATA_DIR / "rdp_servers.json"
 SSH_SERVERS_FILE = DATA_DIR / "ssh_servers.json"
 # Encryptie key: nieuwe locatie in datamap, plus oude locatie voor compatibiliteit
 CREDENTIALS_KEY_FILE_NEW = DATA_DIR / ".credentials_key"
+CREDENTIALS_KEY_FILE_NEW_DPAPI = DATA_DIR / ".credentials_key.dpapi"
 CREDENTIALS_KEY_FILE_OLD = SCRIPTS_DIR / ".credentials_key"
 
 def clean_env_file():
@@ -148,7 +149,7 @@ def clean_key_file():
     """Verwijder encryptie key file(s) – zowel in datamap als oude locatie. Retourneert resultaat dict."""
     result = {"success": False, "message": "", "removed": 0}
     removed = 0
-    for key_file in (CREDENTIALS_KEY_FILE_NEW, CREDENTIALS_KEY_FILE_OLD):
+    for key_file in (CREDENTIALS_KEY_FILE_NEW_DPAPI, CREDENTIALS_KEY_FILE_NEW, CREDENTIALS_KEY_FILE_OLD):
         if key_file.exists():
             try:
                 key_file.unlink()
@@ -157,10 +158,10 @@ def clean_key_file():
                 result["message"] = (result["message"] or "") + f" Fout bij {key_file.name}: {e}. "
     if removed > 0:
         result["success"] = True
-        result["message"] = (result["message"] or "") + f".credentials_key verwijderd ({removed} bestand(en))."
+        result["message"] = (result["message"] or "") + f"Credential key verwijderd ({removed} bestand(en))."
         result["removed"] = removed
     else:
-        result["message"] = (result["message"] or "Geen .credentials_key bestand gevonden.")
+        result["message"] = (result["message"] or "Geen credential key bestand gevonden.")
     return result
 
 

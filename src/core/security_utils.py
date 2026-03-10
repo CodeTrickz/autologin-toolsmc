@@ -6,6 +6,18 @@ import html
 from urllib.parse import urlparse
 
 
+CANONICAL_SERVICE_URLS = {
+    "microsoft_admin": "https://admin.microsoft.com",
+    "intune_admin": "https://intune.microsoft.com",
+    "azure_admin": "https://portal.azure.com",
+    "google_admin": "https://admin.google.com",
+    "easy4u": "https://easy4u.nl/admin/",
+}
+
+
+LOCKED_URL_SERVICES = set(CANONICAL_SERVICE_URLS)
+
+
 def sanitize_string(value: str, max_length: int = 1000) -> str:
     """
     Sanitize een string input om XSS te voorkomen.
@@ -161,6 +173,42 @@ def validate_service_name(service: str) -> bool:
         "easy4u",
     ]
     return service in valid_services
+
+
+def canonical_service_url(service: str) -> str:
+    """Geef de officiële vaste URL terug voor services met gelockte portal-URL."""
+    return CANONICAL_SERVICE_URLS.get(service, "")
+
+
+def is_service_url_locked(service: str) -> bool:
+    """Bepaal of de URL voor deze service niet vrij instelbaar mag zijn."""
+    return service in LOCKED_URL_SERVICES
+
+
+def normalize_service_url(service: str, url: str) -> str:
+    """
+    Normaliseer service-URL's.
+
+    Voor admin portals en Easy4U forceren we de officiële URL om phishing,
+    typo's en ongewenste redirects te vermijden.
+    """
+    if is_service_url_locked(service):
+        return canonical_service_url(service)
+
+    if not validate_url(url):
+        return ""
+    return url.strip()
+
+
+def preserve_existing_secret(new_value: str | None, existing_value: str | None = None) -> str:
+    """
+    Gebruik een nieuw geheim als het expliciet is ingevuld, anders behoud het oude.
+    """
+    if new_value is None:
+        return existing_value or ""
+    if isinstance(new_value, str) and new_value != "":
+        return new_value
+    return existing_value or ""
 
 
 def sanitize_json_input(data: dict, allowed_keys: list[str]) -> dict:

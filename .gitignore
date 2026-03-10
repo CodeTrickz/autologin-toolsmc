@@ -42,6 +42,9 @@ ssh_servers.json
 src/core/chrome_user_data/
 src/core/chrome_profiles/
 src/core/chrome_user_data_isolated/
+**/chrome_user_data/
+**/chrome_user_data_isolated/
+**/chrome_profiles/
 
 # Build files
 *.spec

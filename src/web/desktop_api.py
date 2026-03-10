@@ -23,6 +23,9 @@ from src.web.web_interface import (
     save_ssh_servers,
     load_credentials,
     save_credentials,
+    _redact_credentials_for_response,
+    _redact_servers_for_response,
+    _get_saved_server_by_id,
 )
 from src.core.security_utils import (
     sanitize_string,
@@ -32,6 +35,9 @@ from src.core.security_utils import (
     validate_port,
     sanitize_file_path,
     validate_service_name,
+    canonical_service_url,
+    normalize_service_url,
+    preserve_existing_secret,
 )
 
 
@@ -43,7 +49,7 @@ class DesktopAPI:
 
     def get_credentials(self):
         creds = load_credentials()
-        return {"success": True, "credentials": creds}
+        return {"success": True, "credentials": _redact_credentials_for_response(creds)}
 
     def save_credentials(self, service, data):
         if not validate_service_name(service):
@@ -55,7 +61,7 @@ class DesktopAPI:
 
         if service == "smartschool":
             username = sanitize_string(data.get("username", "") or data.get("email", ""))
-            password = data.get("password", "")
+            password = preserve_existing_secret(data.get("password"), credentials.get(service, {}).get("password"))
             if not username:
                 return {"success": False, "error": "Gebruikersnaam is verplicht"}
             if not password:
@@ -63,17 +69,17 @@ class DesktopAPI:
             credentials["smartschool"] = {"username": username, "email": username, "password": password}
         elif service == "smartschool_admin":
             username = sanitize_string(data.get("username", "") or data.get("email", ""))
-            password = data.get("password", "")
+            password = preserve_existing_secret(data.get("password"), credentials.get(service, {}).get("password"))
             if not username:
                 return {"success": False, "error": "Gebruikersnaam is verplicht"}
             if not password:
                 return {"success": False, "error": "Wachtwoord is verplicht"}
             credentials["smartschool_admin"] = {"username": username, "email": username, "password": password}
         elif service == "microsoft_admin":
-            url = sanitize_string(data.get("url", "https://admin.microsoft.com"))
+            url = normalize_service_url(service, sanitize_string(data.get("url", canonical_service_url(service))))
             email = sanitize_string(data.get("email", ""))
-            password = data.get("password", "")
-            if not validate_url(url):
+            password = preserve_existing_secret(data.get("password"), credentials.get(service, {}).get("password"))
+            if not url:
                 return {"success": False, "error": "Ongeldige URL"}
             if not email:
                 return {"success": False, "error": "E-mail is verplicht"}
@@ -83,10 +89,10 @@ class DesktopAPI:
                 return {"success": False, "error": "Wachtwoord is verplicht"}
             credentials["microsoft_admin"] = {"url": url, "email": email, "password": password}
         elif service == "google_admin":
-            url = sanitize_string(data.get("url", "https://admin.google.com"))
+            url = normalize_service_url(service, sanitize_string(data.get("url", canonical_service_url(service))))
             email = sanitize_string(data.get("email", ""))
-            password = data.get("password", "")
-            if not validate_url(url):
+            password = preserve_existing_secret(data.get("password"), credentials.get(service, {}).get("password"))
+            if not url:
                 return {"success": False, "error": "Ongeldige URL"}
             if not email:
                 return {"success": False, "error": "E-mail is verplicht"}
@@ -96,10 +102,10 @@ class DesktopAPI:
                 return {"success": False, "error": "Wachtwoord is verplicht"}
             credentials["google_admin"] = {"url": url, "email": email, "password": password}
         elif service == "intune_admin":
-            url = sanitize_string(data.get("url", "https://intune.microsoft.com"))
+            url = normalize_service_url(service, sanitize_string(data.get("url", canonical_service_url(service))))
             email = sanitize_string(data.get("email", ""))
-            password = data.get("password", "")
-            if not validate_url(url):
+            password = preserve_existing_secret(data.get("password"), credentials.get(service, {}).get("password"))
+            if not url:
                 return {"success": False, "error": "Ongeldige URL"}
             if not email:
                 return {"success": False, "error": "E-mail is verplicht"}
@@ -109,10 +115,10 @@ class DesktopAPI:
                 return {"success": False, "error": "Wachtwoord is verplicht"}
             credentials["intune_admin"] = {"url": url, "email": email, "password": password}
         elif service == "azure_admin":
-            url = sanitize_string(data.get("url", "https://portal.azure.com"))
+            url = normalize_service_url(service, sanitize_string(data.get("url", canonical_service_url(service))))
             email = sanitize_string(data.get("email", ""))
-            password = data.get("password", "")
-            if not validate_url(url):
+            password = preserve_existing_secret(data.get("password"), credentials.get(service, {}).get("password"))
+            if not url:
                 return {"success": False, "error": "Ongeldige URL"}
             if not email:
                 return {"success": False, "error": "E-mail is verplicht"}
@@ -122,12 +128,9 @@ class DesktopAPI:
                 return {"success": False, "error": "Wachtwoord is verplicht"}
             credentials["azure_admin"] = {"url": url, "email": email, "password": password}
         elif service == "easy4u":
-            # Altijd de officiële Nederlandse login-URL gebruiken (niet my.easy4u.be)
-            url = "https://easy4u.nl/admin/"
+            url = canonical_service_url("easy4u")
             email = sanitize_string(data.get("email", ""))
-            password = data.get("password", "")
-            if not validate_url(url):
-                return {"success": False, "error": "Ongeldige URL"}
+            password = preserve_existing_secret(data.get("password"), credentials.get(service, {}).get("password"))
             if not email:
                 return {"success": False, "error": "E-mail is verplicht"}
             if not validate_email(email):
@@ -144,7 +147,7 @@ class DesktopAPI:
 
     def get_rdp_servers(self):
         servers = load_rdp_servers()
-        return {"success": True, "servers": servers}
+        return {"success": True, "servers": _redact_servers_for_response(servers)}
 
     def add_rdp_server(self, data):
         if not data or not isinstance(data, dict):
@@ -169,7 +172,11 @@ class DesktopAPI:
         }
         servers.append(new_server)
         if save_rdp_servers(servers):
-            return {"success": True, "message": "Server toegevoegd", "server": new_server}
+            return {
+                "success": True,
+                "message": "Server toegevoegd",
+                "server": _redact_servers_for_response([new_server])[0],
+            }
         return {"success": False, "error": "Kon server niet opslaan"}
 
     def delete_rdp_server(self, server_id):
@@ -180,11 +187,27 @@ class DesktopAPI:
         return {"success": False, "error": "Kon server niet verwijderen"}
 
     def connect_rdp(self, data):
-        host = data.get("host")
-        user = data.get("user") or ""
-        password = data.get("password") or ""
+        data = data or {}
+        server_id = data.get("server_id")
+        if server_id is not None:
+            try:
+                server_id = int(server_id)
+            except (TypeError, ValueError):
+                return {"success": False, "error": "Ongeldige server id"}
+            server = _get_saved_server_by_id(load_rdp_servers(), server_id)
+            if not server:
+                return {"success": False, "error": "Server niet gevonden"}
+            host = server.get("host")
+            user = server.get("user") or ""
+            password = server.get("password") or ""
+        else:
+            host = sanitize_string(data.get("host", ""))
+            user = sanitize_string(data.get("user", "")) or ""
+            password = data.get("password") or ""
         if not host:
             return {"success": False, "error": "Host is verplicht"}
+        if not validate_hostname(host):
+            return {"success": False, "error": "Ongeldig hostname of IP adres"}
         try:
             from src.auto_login.auto_rdp_sessions import _start_single_rdp
             _start_single_rdp(host, user, password)
@@ -194,7 +217,7 @@ class DesktopAPI:
 
     def get_ssh_servers(self):
         servers = load_ssh_servers()
-        return {"success": True, "servers": servers}
+        return {"success": True, "servers": _redact_servers_for_response(servers)}
 
     def add_ssh_server(self, data):
         if not data or not isinstance(data, dict):
@@ -229,7 +252,11 @@ class DesktopAPI:
         }
         servers.append(new_server)
         if save_ssh_servers(servers):
-            return {"success": True, "message": "Server toegevoegd", "server": new_server}
+            return {
+                "success": True,
+                "message": "Server toegevoegd",
+                "server": _redact_servers_for_response([new_server])[0],
+            }
         return {"success": False, "error": "Kon server niet opslaan"}
 
     def delete_ssh_server(self, server_id):
@@ -240,13 +267,37 @@ class DesktopAPI:
         return {"success": False, "error": "Kon server niet verwijderen"}
 
     def connect_ssh(self, data):
-        host = data.get("host")
-        user = data.get("user") or ""
-        port = data.get("port", 22)
-        key_file = data.get("key_file") or ""
-        password = data.get("password") or ""
+        data = data or {}
+        server_id = data.get("server_id")
+        if server_id is not None:
+            try:
+                server_id = int(server_id)
+            except (TypeError, ValueError):
+                return {"success": False, "error": "Ongeldige server id"}
+            server = _get_saved_server_by_id(load_ssh_servers(), server_id)
+            if not server:
+                return {"success": False, "error": "Server niet gevonden"}
+            host = server.get("host")
+            user = server.get("user") or ""
+            port = server.get("port", 22)
+            key_file = server.get("key_file") or ""
+            password = server.get("password") or ""
+        else:
+            host = sanitize_string(data.get("host", ""))
+            user = sanitize_string(data.get("user", "")) or ""
+            port = data.get("port", 22)
+            key_file = sanitize_file_path(data.get("key_file", "")) or ""
+            password = data.get("password") or ""
         if not host:
             return {"success": False, "error": "Host is verplicht"}
+        if not validate_hostname(host):
+            return {"success": False, "error": "Ongeldig hostname of IP adres"}
+        if not validate_port(port):
+            return {"success": False, "error": "Ongeldig poort nummer (1-65535)"}
+        try:
+            port = int(port)
+        except (TypeError, ValueError):
+            return {"success": False, "error": "Ongeldig poort nummer"}
         try:
             from src.auto_login.auto_ssh_connect import start_ssh_connection
             start_ssh_connection(host, user, port, key_file, password)

@@ -317,6 +317,8 @@
 
     {% block scripts %}
     <script>
+        const appCsrfToken = "{{ api_csrf_token|default('')|e }}";
+
         // API Bridge: schakel tussen pywebview.api (standalone) en fetch (Flask)
         window.appApi = {
             // Lazy check voor pywebview.api (kan nog niet beschikbaar zijn bij initialisatie)
@@ -339,6 +341,30 @@
                 }
                 return null;
             },
+
+            _buildHeaders: function(extraHeaders = {}) {
+                return {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-App-CSRF-Token': appCsrfToken,
+                    ...extraHeaders
+                };
+            },
+
+            _fetchJson: async function(url, options = {}) {
+                const response = await fetch(url, {
+                    ...options,
+                    headers: this._buildHeaders(options.headers || {})
+                });
+                return await response.json();
+            },
+
+            _fetchText: async function(url, options = {}) {
+                const response = await fetch(url, {
+                    ...options,
+                    headers: this._buildHeaders(options.headers || {})
+                });
+                return await response.text();
+            },
             
             getCredentials: async function() {
                 const api = this._getApi();
@@ -353,8 +379,7 @@
                         throw new Error('getCredentials method niet gevonden');
                     }
                 }
-                const response = await fetch('/api/credentials');
-                return await response.json();
+                return await this._fetchJson('/api/credentials');
             },
             
             saveCredentials: async function(service, data) {
@@ -371,12 +396,11 @@
                         throw new Error('saveCredentials method niet gevonden in pywebview.api');
                     }
                 }
-                const response = await fetch(`/api/credentials/${service}`, {
+                return await this._fetchJson(`/api/credentials/${service}`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(data)
                 });
-                return await response.json();
             },
             
             getRdpServers: async function() {
@@ -385,8 +409,7 @@
                     if (typeof api.getRdpServers === 'function') return await api.getRdpServers();
                     if (typeof api.get_rdp_servers === 'function') return await api.get_rdp_servers();
                 }
-                const response = await fetch('/api/rdp/servers');
-                return await response.json();
+                return await this._fetchJson('/api/rdp/servers');
             },
             
             saveRdpServer: async function(data) {
@@ -395,12 +418,11 @@
                     if (typeof api.addRdpServer === 'function') return await api.addRdpServer(data);
                     if (typeof api.add_rdp_server === 'function') return await api.add_rdp_server(data);
                 }
-                const response = await fetch('/api/rdp/servers', {
+                return await this._fetchJson('/api/rdp/servers', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(data)
                 });
-                return await response.json();
             },
             
             deleteRdpServer: async function(serverId) {
@@ -409,10 +431,9 @@
                     if (typeof api.deleteRdpServer === 'function') return await api.deleteRdpServer(serverId);
                     if (typeof api.delete_rdp_server === 'function') return await api.delete_rdp_server(serverId);
                 }
-                const response = await fetch(`/api/rdp/servers/${serverId}`, {
+                return await this._fetchJson(`/api/rdp/servers/${serverId}`, {
                     method: 'DELETE'
                 });
-                return await response.json();
             },
             
             getSshServers: async function() {
@@ -421,8 +442,7 @@
                     if (typeof api.getSshServers === 'function') return await api.getSshServers();
                     if (typeof api.get_ssh_servers === 'function') return await api.get_ssh_servers();
                 }
-                const response = await fetch('/api/ssh/servers');
-                return await response.json();
+                return await this._fetchJson('/api/ssh/servers');
             },
             
             saveSshServer: async function(data) {
@@ -431,12 +451,11 @@
                     if (typeof api.addSshServer === 'function') return await api.addSshServer(data);
                     if (typeof api.add_ssh_server === 'function') return await api.add_ssh_server(data);
                 }
-                const response = await fetch('/api/ssh/servers', {
+                return await this._fetchJson('/api/ssh/servers', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(data)
                 });
-                return await response.json();
             },
             
             deleteSshServer: async function(serverId) {
@@ -445,10 +464,9 @@
                     if (typeof api.deleteSshServer === 'function') return await api.deleteSshServer(serverId);
                     if (typeof api.delete_ssh_server === 'function') return await api.delete_ssh_server(serverId);
                 }
-                const response = await fetch(`/api/ssh/servers/${serverId}`, {
+                return await this._fetchJson(`/api/ssh/servers/${serverId}`, {
                     method: 'DELETE'
                 });
-                return await response.json();
             },
             
             login: async function(service) {
@@ -456,10 +474,9 @@
                 if (api) {
                     if (typeof api.login === 'function') return await api.login(service);
                 }
-                const response = await fetch(`/api/login/${service}`, {
+                return await this._fetchJson(`/api/login/${service}`, {
                     method: 'POST'
                 });
-                return await response.json();
             },
             
             connectRdp: async function(data) {
@@ -468,12 +485,11 @@
                     if (typeof api.connectRdp === 'function') return await api.connectRdp(data);
                     if (typeof api.connect_rdp === 'function') return await api.connect_rdp(data);
                 }
-                const response = await fetch('/api/rdp/connect', {
+                return await this._fetchJson('/api/rdp/connect', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(data)
                 });
-                return await response.json();
             },
             
             connectSsh: async function(data) {
@@ -482,12 +498,11 @@
                     if (typeof api.connectSsh === 'function') return await api.connectSsh(data);
                     if (typeof api.connect_ssh === 'function') return await api.connect_ssh(data);
                 }
-                const response = await fetch('/api/ssh/connect', {
+                return await this._fetchJson('/api/ssh/connect', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(data)
                 });
-                return await response.json();
             },
             
             runUtility: async function(utility) {
@@ -496,10 +511,9 @@
                     if (typeof api.runUtility === 'function') return await api.runUtility(utility);
                     if (typeof api.run_utility === 'function') return await api.run_utility(utility);
                 }
-                const response = await fetch(`/api/utilities/${utility}`, {
+                return await this._fetchJson(`/api/utilities/${utility}`, {
                     method: 'POST'
                 });
-                return await response.json();
             },
             
             getDocumentationHtml: async function() {
@@ -508,8 +522,7 @@
                     if (typeof api.getDocumentationHtml === 'function') return await api.getDocumentationHtml();
                     if (typeof api.get_documentation_html === 'function') return await api.get_documentation_html();
                 }
-                const response = await fetch('/api/documentation');
-                return await response.text();
+                return await this._fetchText('/api/documentation');
             },
             
             getVersion: async function() {
@@ -518,8 +531,7 @@
                     if (typeof api.getVersion === 'function') return await api.getVersion();
                     if (typeof api.get_version === 'function') return await api.get_version();
                 }
-                const response = await fetch('/api/version');
-                return await response.json();
+                return await this._fetchJson('/api/version');
             }
         };
         

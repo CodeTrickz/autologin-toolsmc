@@ -63,8 +63,7 @@
             if (window.appApi && typeof window.appApi.login === 'function') {
                 data = await window.appApi.login(service);
             } else {
-                const response = await fetch(`/api/login/${service}`, { method: 'POST' });
-                data = await response.json();
+                data = await window.appApi._fetchJson(`/api/login/${service}`, { method: 'POST' });
             }
 
             if (data.success) {

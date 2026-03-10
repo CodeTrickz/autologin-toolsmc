@@ -320,7 +320,7 @@ class SecurityTest:
                     "WARNING",
                     "Web Security",
                     "Flask secret key niet ingesteld of gebruikt default",
-                    "Zet FLASK_SECRET_KEY in .env of environment in productie"
+                    "Gebruik FLASK_SECRET_KEY of de automatisch gegenereerde persistente secret key"
                 )
             else:
                 self.add_pass("Web Security", "Flask secret key is ingesteld")

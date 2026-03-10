@@ -16,6 +16,7 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from src.core.credentials_manager import get_credential, get_data_dir
+from src.core.security_utils import canonical_service_url
 from src.auto_login.browser_session import open_url_for_service
 from src.auto_login.input_utils import clear_and_human_type
 from src.auto_login.microsoft_account_switch import get_microsoft_email_input, prepare_microsoft_login_for_email
@@ -47,7 +48,7 @@ def login_microsoft_admin() -> None:
     """
     load_dotenv()
 
-    admin_url = get_credential_or_fail("microsoft_admin", "url") or "https://admin.microsoft.com"
+    admin_url = canonical_service_url("microsoft_admin")
     ms_email = get_credential_or_fail("microsoft_admin", "email")
     ms_password = get_credential_or_fail("microsoft_admin", "password")
 
@@ -133,7 +134,7 @@ def login_microsoft_admin() -> None:
         except Exception:
             pass
 
-        print("Microsoft Admin login uitgevoerd in gedeelde browser-sessie (tab blijft open).")
+        print("Microsoft Admin login uitgevoerd in een geharde, geïsoleerde browser-sessie.")
         print("Als er 2FA vereist is, vul die nu handmatig in.")
 
     finally:

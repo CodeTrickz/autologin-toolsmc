@@ -5,27 +5,125 @@ import os
 import sys
 import json
 import base64
+import ctypes
 from pathlib import Path
 from cryptography.fernet import Fernet
+from src.core.security_utils import normalize_service_url
 
 
 def get_data_dir() -> Path:
     """
     Directory voor credentials en server-bestanden (persistent).
-    Bij gebundelde .exe: AppData/Local/SintMaartenCampusAutologin.
-    Anders: map van dit bestand (projectmap).
+    Standaard altijd buiten de projectmap in een gebruikersspecifieke datamap.
+    Bestaande bestanden uit de oude projectlocatie worden automatisch gemigreerd.
     """
-    if getattr(sys, "frozen", False):
-        if os.name == "nt":
-            base = Path(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")))
-        else:
-            base = Path.home() / ".config"
+    if os.environ.get("AUTOLOGIN_USE_PROJECT_DATA_DIR", "").strip().lower() in {"1", "true", "yes", "on"}:
+        project_dir = Path(__file__).parent
+        project_dir.mkdir(parents=True, exist_ok=True)
+        return project_dir
+
+    if os.name == "nt":
+        base = Path(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")))
         data_dir = base / "SintMaartenCampusAutologin"
-        data_dir.mkdir(parents=True, exist_ok=True)
-        return data_dir
-    return Path(__file__).parent
+    else:
+        data_dir = Path.home() / ".config" / "sintmaartencampus-autologin"
+
+    data_dir.mkdir(parents=True, exist_ok=True)
+
+    legacy_dir = Path(__file__).parent
+    legacy_files = [
+        "credentials.json",
+        "rdp_servers.json",
+        "ssh_servers.json",
+        ".env",
+    ]
+    for filename in legacy_files:
+        legacy_file = legacy_dir / filename
+        target_file = data_dir / filename
+        if legacy_file.exists() and not target_file.exists():
+            try:
+                target_file.write_bytes(legacy_file.read_bytes())
+            except Exception:
+                pass
+
+    return data_dir
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
+
+_CRYPTPROTECT_UI_FORBIDDEN = 0x01
+
+
+class _DATA_BLOB(ctypes.Structure):
+    _fields_ = [
+        ("cbData", ctypes.c_uint32),
+        ("pbData", ctypes.POINTER(ctypes.c_ubyte)),
+    ]
+
+
+def _data_blob_from_bytes(data: bytes) -> _DATA_BLOB:
+    if not data:
+        return _DATA_BLOB(0, None)
+    buffer = ctypes.create_string_buffer(data)
+    blob = _DATA_BLOB(len(data), ctypes.cast(buffer, ctypes.POINTER(ctypes.c_ubyte)))
+    blob._buffer = buffer
+    return blob
+
+
+def _bytes_from_blob(blob: _DATA_BLOB) -> bytes:
+    if not blob.cbData or not blob.pbData:
+        return b""
+    return ctypes.string_at(blob.pbData, blob.cbData)
+
+
+def _dpapi_protect(data: bytes) -> bytes:
+    if os.name != "nt":
+        return data
+
+    crypt32 = ctypes.windll.crypt32
+    kernel32 = ctypes.windll.kernel32
+    in_blob = _data_blob_from_bytes(data)
+    out_blob = _DATA_BLOB()
+    if not crypt32.CryptProtectData(
+        ctypes.byref(in_blob),
+        None,
+        None,
+        None,
+        None,
+        _CRYPTPROTECT_UI_FORBIDDEN,
+        ctypes.byref(out_blob),
+    ):
+        raise OSError("DPAPI protectie mislukt.")
+
+    try:
+        return _bytes_from_blob(out_blob)
+    finally:
+        kernel32.LocalFree(out_blob.pbData)
+
+
+def _dpapi_unprotect(data: bytes) -> bytes:
+    if os.name != "nt":
+        return data
+
+    crypt32 = ctypes.windll.crypt32
+    kernel32 = ctypes.windll.kernel32
+    in_blob = _data_blob_from_bytes(data)
+    out_blob = _DATA_BLOB()
+    if not crypt32.CryptUnprotectData(
+        ctypes.byref(in_blob),
+        None,
+        None,
+        None,
+        None,
+        _CRYPTPROTECT_UI_FORBIDDEN,
+        ctypes.byref(out_blob),
+    ):
+        raise OSError("DPAPI decryptie mislukt.")
+
+    try:
+        return _bytes_from_blob(out_blob)
+    finally:
+        kernel32.LocalFree(out_blob.pbData)
 
 
 def get_or_create_key(key_file: Path) -> bytes:
@@ -58,6 +156,42 @@ def get_or_create_key(key_file: Path) -> bytes:
         return key
 
 
+def get_or_create_windows_dpapi_key(key_file: Path, legacy_key_file: Path | None = None) -> bytes:
+    """
+    Bewaar de Fernet-sleutel op Windows altijd DPAPI-beschermd.
+
+    Als een oudere raw key file bestaat, migreer die automatisch naar een
+    DPAPI-beschermd blob zodat bestaande versleutelde data leesbaar blijft.
+    """
+    if key_file.exists():
+        encrypted_blob = key_file.read_bytes()
+        return _dpapi_unprotect(encrypted_blob)
+
+    key: bytes | None = None
+    if legacy_key_file and legacy_key_file.exists():
+        key = legacy_key_file.read_bytes()
+    else:
+        key = Fernet.generate_key()
+
+    key_file.parent.mkdir(parents=True, exist_ok=True)
+    key_file.write_bytes(_dpapi_protect(key))
+
+    try:
+        import stat
+
+        os.chmod(key_file, stat.S_IREAD | stat.S_IWRITE)
+    except Exception:
+        pass
+
+    if legacy_key_file and legacy_key_file.exists():
+        try:
+            legacy_key_file.unlink()
+        except Exception:
+            pass
+
+    return key
+
+
 def get_encryption_key(scripts_dir: Path) -> bytes:
     """
     Haal de encryptie key op. Gebruikt een master password of genereert een key file.
@@ -80,13 +214,20 @@ def get_encryption_key(scripts_dir: Path) -> bytes:
     else:
         # Gebruik key file - plaats in veilige locatie
         if os.name == "nt":  # Windows
-            # Gebruik AppData\Local voor betere beveiliging
+            # Gebruik AppData\Local en bind de sleutel aan de Windows gebruiker via DPAPI.
             appdata_dir = Path(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")))
             secure_dir = appdata_dir / "SintMaartenCampusAutologin"
             secure_dir.mkdir(exist_ok=True, mode=0o700)
-            key_file = secure_dir / ".credentials_key"
-            # Fallback naar oude locatie voor backward compatibility
-            old_key_file = scripts_dir / ".credentials_key"
+            key_file = secure_dir / ".credentials_key.dpapi"
+            old_key_file = secure_dir / ".credentials_key"
+            legacy_project_key_file = scripts_dir / ".credentials_key"
+            if key_file.exists():
+                return get_or_create_windows_dpapi_key(key_file)
+            if old_key_file.exists():
+                return get_or_create_windows_dpapi_key(key_file, old_key_file)
+            if legacy_project_key_file.exists():
+                return get_or_create_windows_dpapi_key(key_file, legacy_project_key_file)
+            return get_or_create_windows_dpapi_key(key_file)
         else:  # Unix/Linux
             # Gebruik .config directory in home
             config_dir = Path.home() / ".config" / "sintmaartencampus-autologin"
@@ -285,19 +426,19 @@ def sync_to_env(credentials: dict, env_file: Path, scripts_dir: Path) -> bool:
         # Voeg ALLEEN niet-gevoelige gegevens toe (GEEN wachtwoorden)
         # Alleen URL's en emails voor referentie, maar modules lezen direct uit encrypted credentials
         if "microsoft_admin" in credentials:
-            env_lines.append(f"MS_ADMIN_URL={credentials['microsoft_admin'].get('url', 'https://admin.microsoft.com')}\n")
+            env_lines.append(f"MS_ADMIN_URL={normalize_service_url('microsoft_admin', credentials['microsoft_admin'].get('url', 'https://admin.microsoft.com'))}\n")
 
         if "intune_admin" in credentials:
-            env_lines.append(f"INTUNE_ADMIN_URL={credentials['intune_admin'].get('url', 'https://intune.microsoft.com')}\n")
+            env_lines.append(f"INTUNE_ADMIN_URL={normalize_service_url('intune_admin', credentials['intune_admin'].get('url', 'https://intune.microsoft.com'))}\n")
 
         if "azure_admin" in credentials:
-            env_lines.append(f"AZURE_ADMIN_URL={credentials['azure_admin'].get('url', 'https://portal.azure.com')}\n")
+            env_lines.append(f"AZURE_ADMIN_URL={normalize_service_url('azure_admin', credentials['azure_admin'].get('url', 'https://portal.azure.com'))}\n")
         
         if "google_admin" in credentials:
-            env_lines.append(f"GOOGLE_ADMIN_URL={credentials['google_admin'].get('url', 'https://admin.google.com')}\n")
+            env_lines.append(f"GOOGLE_ADMIN_URL={normalize_service_url('google_admin', credentials['google_admin'].get('url', 'https://admin.google.com'))}\n")
         
         if "easy4u" in credentials:
-            env_lines.append(f"EASY4U_URL={credentials['easy4u'].get('url', 'https://easy4u.nl/admin/')}\n")
+            env_lines.append(f"EASY4U_URL={normalize_service_url('easy4u', credentials['easy4u'].get('url', 'https://easy4u.nl/admin/'))}\n")
         
         # Schrijf .env terug (ZONDER wachtwoorden)
         with open(env_file, "w", encoding="utf-8") as f:

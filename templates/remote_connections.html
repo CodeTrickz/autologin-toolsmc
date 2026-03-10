@@ -174,9 +174,7 @@
             }
 
             const connectData = await window.appApi.connectRdp({
-                host: server.host,
-                user: server.user || null,
-                password: server.password || null,
+                server_id: server.id,
             });
             if (connectData.success) {
                 showAlert(`✅ ${connectData.message}`, 'success', 'rdp-alert-container');
@@ -287,11 +285,7 @@
             }
 
             const connectData = await window.appApi.connectSsh({
-                host: server.host,
-                user: server.user || null,
-                port: server.port || 22,
-                key_file: server.key_file || null,
-                password: server.password || null,
+                server_id: server.id,
             });
             if (connectData.success) {
                 showAlert(`✅ ${connectData.message}`, 'success', 'ssh-alert-container');

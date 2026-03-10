@@ -13,6 +13,7 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from src.core.credentials_manager import get_credential, get_data_dir
+from src.core.security_utils import canonical_service_url
 from src.auto_login.browser_session import open_url_for_service
 from src.auto_login.input_utils import clear_and_human_type
 from src.auto_login.microsoft_account_switch import get_microsoft_email_input, prepare_microsoft_login_for_email
@@ -35,7 +36,7 @@ def get_credential_or_fail(service: str, field: str) -> str:
 def login_azure_admin() -> None:
     load_dotenv()
 
-    admin_url = get_credential_or_fail("azure_admin", "url") or "https://portal.azure.com"
+    admin_url = canonical_service_url("azure_admin")
     admin_email = get_credential_or_fail("azure_admin", "email")
     admin_password = get_credential_or_fail("azure_admin", "password")
 
@@ -100,7 +101,7 @@ def login_azure_admin() -> None:
         except Exception:
             pass
 
-        print("Azure Admin login uitgevoerd in gedeelde browser-sessie (tab blijft open).")
+        print("Azure Admin login uitgevoerd in een geharde, geïsoleerde browser-sessie.")
         print("Als er 2FA vereist is, vul die nu handmatig in.")
     finally:
         pass

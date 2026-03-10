@@ -3,8 +3,9 @@ import sys
 import json
 import html
 import threading
+import secrets
 from pathlib import Path
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, session, has_request_context
 from dotenv import load_dotenv
 
 # Add parent directory to path for imports
@@ -38,6 +39,10 @@ from src.core.security_utils import (
     sanitize_file_path,
     validate_service_name,
     sanitize_json_input,
+    canonical_service_url,
+    is_service_url_locked,
+    normalize_service_url,
+    preserve_existing_secret,
 )
 
 # Pad naar project root (waar templates/ staat)
@@ -45,12 +50,9 @@ TEMPLATES_DIR = SCRIPTS_DIR / "templates"
 
 # Flask app met correct template folder
 app = Flask(__name__, template_folder=str(TEMPLATES_DIR))
-# Secret key voor sessies en CSRF protection
-# In productie: gebruik een sterke, willekeurige secret key
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-key-change-in-production")
 
 # Applicatieversie (één plek; ook zichtbaar in webinterface en API)
-APP_VERSION = "2.0.1"
+APP_VERSION = "2.0.2"
 DATA_DIR = get_data_dir()
 RDP_SERVERS_FILE = DATA_DIR / "rdp_servers.json"
 SSH_SERVERS_FILE = DATA_DIR / "ssh_servers.json"
@@ -61,10 +63,50 @@ ENV_FILE = DATA_DIR / ".env"
 load_dotenv()
 
 
+def _load_or_create_secret(secret_file: Path, length: int = 32) -> str:
+    """Laad een persistente secret of maak er veilig een aan."""
+    secret_file.parent.mkdir(parents=True, exist_ok=True)
+    if secret_file.exists():
+        return secret_file.read_text(encoding="utf-8").strip()
+
+    secret_value = secrets.token_hex(length)
+    with open(secret_file, "w", encoding="utf-8") as f:
+        f.write(secret_value)
+
+    try:
+        if os.name != "nt":
+            os.chmod(secret_file, 0o600)
+    except Exception:
+        pass
+    return secret_value
+
+
+def get_flask_secret_key() -> str:
+    """Gebruik env override of een persistente lokale secret key."""
+    env_secret = os.environ.get("FLASK_SECRET_KEY", "").strip()
+    if env_secret:
+        return env_secret
+
+    if os.name == "nt":
+        base_dir = Path(os.environ.get("LOCALAPPDATA", os.path.expanduser("~"))) / "SintMaartenCampusAutologin"
+    else:
+        base_dir = Path.home() / ".config" / "sintmaartencampus-autologin"
+    return _load_or_create_secret(base_dir / ".flask_secret_key")
+
+
+app.secret_key = get_flask_secret_key()
+
+
 @app.context_processor
 def inject_version():
     """Maak applicatieversie beschikbaar in alle templates."""
-    return {"app_version": APP_VERSION}
+    csrf_token = ""
+    if has_request_context():
+        csrf_token = session.get("csrf_token")
+        if not csrf_token:
+            csrf_token = secrets.token_urlsafe(32)
+            session["csrf_token"] = csrf_token
+    return {"app_version": APP_VERSION, "api_csrf_token": csrf_token}
 
 
 @app.after_request
@@ -73,7 +115,101 @@ def no_cache_html(resp):
     if resp.content_type and "text/html" in resp.content_type:
         resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
         resp.headers["Pragma"] = "no-cache"
+    resp.headers["X-Frame-Options"] = "DENY"
+    resp.headers["X-Content-Type-Options"] = "nosniff"
+    resp.headers["Referrer-Policy"] = "no-referrer"
+    resp.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    resp.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "img-src 'self' data:; "
+        "style-src 'self' 'unsafe-inline'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "connect-src 'self'; "
+        "frame-ancestors 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'"
+    )
     return resp
+
+
+def _is_local_request() -> bool:
+    remote_addr = request.remote_addr or ""
+    return remote_addr in {"127.0.0.1", "::1", "::ffff:127.0.0.1"}
+
+
+def _has_valid_api_origin() -> bool:
+    expected_origin = request.host_url.rstrip("/")
+    for header_name in ("Origin", "Referer"):
+        header_value = (request.headers.get(header_name) or "").strip()
+        if not header_value:
+            continue
+        if header_value.startswith(expected_origin):
+            return True
+        return False
+    return True
+
+
+@app.before_request
+def protect_local_api():
+    if not request.path.startswith("/api/"):
+        return None
+    if not _is_local_request():
+        return jsonify({"success": False, "error": "API alleen lokaal toegankelijk"}), 403
+    if not _has_valid_api_origin():
+        return jsonify({"success": False, "error": "Ongeldige request origin"}), 403
+
+    if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
+        header_token = (request.headers.get("X-App-CSRF-Token") or "").strip()
+        session_token = (session.get("csrf_token") or "").strip()
+        if not session_token or not header_token or not secrets.compare_digest(header_token, session_token):
+            return jsonify({"success": False, "error": "CSRF validatie mislukt"}), 403
+    return None
+
+
+def _redact_credentials_for_response(credentials: dict) -> dict:
+    redacted = {}
+    for service, creds in (credentials or {}).items():
+        clean = {}
+        for field, value in (creds or {}).items():
+            if field == "password":
+                clean["has_password"] = bool(value)
+            elif field == "url" and is_service_url_locked(service):
+                clean["url"] = canonical_service_url(service)
+            else:
+                clean[field] = value
+        clean.setdefault("has_password", False)
+        redacted[service] = clean
+    return redacted
+
+
+def _resolve_service_url(service: str, raw_url: str) -> str:
+    normalized = normalize_service_url(service, raw_url)
+    if normalized:
+        return normalized
+    raise ValueError("Ongeldige URL")
+
+
+def _resolve_password_input(credentials: dict, service: str, data: dict) -> str:
+    existing_password = ""
+    if service in credentials:
+        existing_password = credentials[service].get("password", "")
+    return preserve_existing_secret(data.get("password"), existing_password)
+
+
+def _redact_servers_for_response(servers: list[dict]) -> list[dict]:
+    redacted = []
+    for server in servers or []:
+        clean = {k: v for k, v in server.items() if k != "password"}
+        clean["has_password"] = bool(server.get("password"))
+        redacted.append(clean)
+    return redacted
+
+
+def _get_saved_server_by_id(servers: list[dict], server_id: int) -> dict | None:
+    for server in servers:
+        if server.get("id") == server_id:
+            return server
+    return None
 
 
 def load_rdp_servers():
@@ -247,15 +383,15 @@ def auto_login_beheer():
 @app.route("/credentials")
 def credentials_page():
     """Credentials beheer pagina."""
-    credentials = load_credentials()
+    credentials = _redact_credentials_for_response(load_credentials())
     return render_template("credentials.html", credentials=credentials)
 
 
 @app.route("/remote-connections")
 def remote_connections():
     """Remote connections pagina (RDP + SSH)."""
-    rdp_servers = load_rdp_servers()
-    ssh_servers = load_ssh_servers()
+    rdp_servers = _redact_servers_for_response(load_rdp_servers())
+    ssh_servers = _redact_servers_for_response(load_ssh_servers())
     return render_template("remote_connections.html", rdp_servers=rdp_servers, ssh_servers=ssh_servers)
 
 
@@ -469,13 +605,29 @@ def start_login(service):
 @app.route("/api/rdp/connect", methods=["POST"])
 def connect_rdp():
     """Start een RDP connectie naar een specifieke server."""
-    data = request.get_json()
-    host = data.get("host")
-    user = data.get("user")
-    password = data.get("password")
+    data = request.get_json() or {}
+    server_id = data.get("server_id")
+
+    if server_id is not None:
+        try:
+            server_id = int(server_id)
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "error": "Ongeldige server id"}), 400
+        saved_server = _get_saved_server_by_id(load_rdp_servers(), server_id)
+        if not saved_server:
+            return jsonify({"success": False, "error": "Server niet gevonden"}), 404
+        host = saved_server.get("host")
+        user = saved_server.get("user")
+        password = saved_server.get("password")
+    else:
+        host = sanitize_string(data.get("host", ""))
+        user = sanitize_string(data.get("user", ""))
+        password = data.get("password")
 
     if not host:
         return jsonify({"success": False, "error": "Host is verplicht"}), 400
+    if not validate_hostname(host):
+        return jsonify({"success": False, "error": "Ongeldig hostname of IP adres"}), 400
 
     try:
         # Gebruik de functie uit auto_rdp_sessions.py
@@ -491,7 +643,7 @@ def connect_rdp():
 def get_rdp_servers():
     """Haal alle RDP servers op."""
     servers = load_rdp_servers()
-    return jsonify({"success": True, "servers": servers})
+    return jsonify({"success": True, "servers": _redact_servers_for_response(servers)})
 
 
 @app.route("/api/rdp/servers", methods=["POST"])
@@ -529,7 +681,11 @@ def add_rdp_server():
     servers.append(new_server)
 
     if save_rdp_servers(servers):
-        return jsonify({"success": True, "message": "Server toegevoegd", "server": new_server})
+        return jsonify({
+            "success": True,
+            "message": "Server toegevoegd",
+            "server": _redact_servers_for_response([new_server])[0],
+        })
     else:
         return jsonify({"success": False, "error": "Kon server niet opslaan"}), 500
 
@@ -549,15 +705,40 @@ def delete_rdp_server(server_id):
 @app.route("/api/ssh/connect", methods=["POST"])
 def connect_ssh():
     """Start een SSH verbinding naar een specifieke server."""
-    data = request.get_json()
-    host = data.get("host")
-    user = data.get("user")
-    port = data.get("port", 22)
-    key_file = data.get("key_file")
-    password = data.get("password")
+    data = request.get_json() or {}
+    server_id = data.get("server_id")
+
+    if server_id is not None:
+        try:
+            server_id = int(server_id)
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "error": "Ongeldige server id"}), 400
+        saved_server = _get_saved_server_by_id(load_ssh_servers(), server_id)
+        if not saved_server:
+            return jsonify({"success": False, "error": "Server niet gevonden"}), 404
+        host = saved_server.get("host")
+        user = saved_server.get("user")
+        port = saved_server.get("port", 22)
+        key_file = saved_server.get("key_file")
+        password = saved_server.get("password")
+    else:
+        host = sanitize_string(data.get("host", ""))
+        user = sanitize_string(data.get("user", ""))
+        port = data.get("port", 22)
+        key_file = sanitize_file_path(data.get("key_file", ""))
+        password = data.get("password")
 
     if not host:
         return jsonify({"success": False, "error": "Host is verplicht"}), 400
+    if not validate_hostname(host):
+        return jsonify({"success": False, "error": "Ongeldig hostname of IP adres"}), 400
+    if not validate_port(port):
+        return jsonify({"success": False, "error": "Ongeldig poort nummer (1-65535)"}), 400
+
+    try:
+        port = int(port)
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "error": "Ongeldig poort nummer"}), 400
 
     try:
         from src.auto_login.auto_ssh_connect import start_ssh_connection
@@ -572,7 +753,7 @@ def connect_ssh():
 def get_ssh_servers():
     """Haal alle SSH servers op."""
     servers = load_ssh_servers()
-    return jsonify({"success": True, "servers": servers})
+    return jsonify({"success": True, "servers": _redact_servers_for_response(servers)})
 
 
 @app.route("/api/ssh/servers", methods=["POST"])
@@ -622,7 +803,11 @@ def add_ssh_server():
     servers.append(new_server)
 
     if save_ssh_servers(servers):
-        return jsonify({"success": True, "message": "Server toegevoegd", "server": new_server})
+        return jsonify({
+            "success": True,
+            "message": "Server toegevoegd",
+            "server": _redact_servers_for_response([new_server])[0],
+        })
     else:
         return jsonify({"success": False, "error": "Kon server niet opslaan"}), 500
 
@@ -643,7 +828,7 @@ def delete_ssh_server(server_id):
 def get_credentials():
     """Haal alle credentials op."""
     credentials = load_credentials()
-    return jsonify({"success": True, "credentials": credentials})
+    return jsonify({"success": True, "credentials": _redact_credentials_for_response(credentials)})
 
 
 @app.route("/api/credentials/<service>", methods=["POST"])
@@ -662,7 +847,7 @@ def save_service_credentials(service):
     # Valideer en sanitize input
     if service == "smartschool":
         username = sanitize_string(data.get("username", "") or data.get("email", ""))
-        password = data.get("password", "")  # Wachtwoord niet sanitizen (wordt encrypted)
+        password = _resolve_password_input(credentials, service, data)
 
         if not username:
             return jsonify({"success": False, "error": "Gebruikersnaam is verplicht"}), 400
@@ -676,7 +861,7 @@ def save_service_credentials(service):
         }
     elif service == "smartschool_admin":
         username = sanitize_string(data.get("username", "") or data.get("email", ""))
-        password = data.get("password", "")
+        password = _resolve_password_input(credentials, service, data)
 
         if not username:
             return jsonify({"success": False, "error": "Gebruikersnaam is verplicht"}), 400
@@ -689,12 +874,13 @@ def save_service_credentials(service):
             "password": password,
         }
     elif service == "microsoft_admin":
-        url = sanitize_string(data.get("url", "https://admin.microsoft.com"))
-        email = sanitize_string(data.get("email", ""))
-        password = data.get("password", "")
-        
-        if not validate_url(url):
+        try:
+            url = _resolve_service_url(service, sanitize_string(data.get("url", canonical_service_url(service))))
+        except ValueError:
             return jsonify({"success": False, "error": "Ongeldige URL"}), 400
+        email = sanitize_string(data.get("email", ""))
+        password = _resolve_password_input(credentials, service, data)
+
         if not email:
             return jsonify({"success": False, "error": "E-mail is verplicht"}), 400
         if not validate_email(email):
@@ -708,12 +894,13 @@ def save_service_credentials(service):
             "password": password,
         }
     elif service == "google_admin":
-        url = sanitize_string(data.get("url", "https://admin.google.com"))
-        email = sanitize_string(data.get("email", ""))
-        password = data.get("password", "")
-        
-        if not validate_url(url):
+        try:
+            url = _resolve_service_url(service, sanitize_string(data.get("url", canonical_service_url(service))))
+        except ValueError:
             return jsonify({"success": False, "error": "Ongeldige URL"}), 400
+        email = sanitize_string(data.get("email", ""))
+        password = _resolve_password_input(credentials, service, data)
+
         if not email:
             return jsonify({"success": False, "error": "E-mail is verplicht"}), 400
         if not validate_email(email):
@@ -727,12 +914,13 @@ def save_service_credentials(service):
             "password": password,
         }
     elif service == "intune_admin":
-        url = sanitize_string(data.get("url", "https://intune.microsoft.com"))
-        email = sanitize_string(data.get("email", ""))
-        password = data.get("password", "")
-
-        if not validate_url(url):
+        try:
+            url = _resolve_service_url(service, sanitize_string(data.get("url", canonical_service_url(service))))
+        except ValueError:
             return jsonify({"success": False, "error": "Ongeldige URL"}), 400
+        email = sanitize_string(data.get("email", ""))
+        password = _resolve_password_input(credentials, service, data)
+
         if not email:
             return jsonify({"success": False, "error": "E-mail is verplicht"}), 400
         if not validate_email(email):
@@ -746,12 +934,13 @@ def save_service_credentials(service):
             "password": password,
         }
     elif service == "azure_admin":
-        url = sanitize_string(data.get("url", "https://portal.azure.com"))
-        email = sanitize_string(data.get("email", ""))
-        password = data.get("password", "")
-
-        if not validate_url(url):
+        try:
+            url = _resolve_service_url(service, sanitize_string(data.get("url", canonical_service_url(service))))
+        except ValueError:
             return jsonify({"success": False, "error": "Ongeldige URL"}), 400
+        email = sanitize_string(data.get("email", ""))
+        password = _resolve_password_input(credentials, service, data)
+
         if not email:
             return jsonify({"success": False, "error": "E-mail is verplicht"}), 400
         if not validate_email(email):
@@ -765,13 +954,10 @@ def save_service_credentials(service):
             "password": password,
         }
     elif service == "easy4u":
-        # Altijd de officiële Nederlandse login-URL gebruiken (niet my.easy4u.be)
-        url = "https://easy4u.nl/admin/"
+        url = canonical_service_url("easy4u")
         email = sanitize_string(data.get("email", ""))
-        password = data.get("password", "")
-        
-        if not validate_url(url):
-            return jsonify({"success": False, "error": "Ongeldige URL"}), 400
+        password = _resolve_password_input(credentials, service, data)
+
         if not email:
             return jsonify({"success": False, "error": "E-mail is verplicht"}), 400
         if not validate_email(email):
@@ -799,12 +985,6 @@ if __name__ == "__main__":
     # Productie vs Development mode
     debug_mode = os.environ.get("FLASK_DEBUG", "False").lower() == "true"
     port = int(os.environ.get("FLASK_PORT", "5000"))
-    
-    # In productie: genereer een random secret key als die niet is ingesteld
-    if not debug_mode and app.secret_key == "dev-secret-key-change-in-production":
-        import secrets
-        app.secret_key = secrets.token_hex(32)
-        print("[!] WAARSCHUWING: FLASK_SECRET_KEY niet ingesteld. Gebruik een vaste secret key in productie!")
-    
+
     # Start de Flask server
     app.run(host="127.0.0.1", port=port, debug=debug_mode)

@@ -74,9 +74,6 @@ def wait_for_server(url, max_wait=10):
 def start_flask_server(port):
     """Start Flask server in achtergrond thread"""
     debug_mode = os.environ.get("FLASK_DEBUG", "False").lower() == "true"
-    if not debug_mode and app.secret_key == "dev-secret-key-change-in-production":
-        import secrets
-        app.secret_key = secrets.token_hex(32)
     app.run(host="127.0.0.1", port=port, debug=debug_mode, use_reloader=False)
 
 
