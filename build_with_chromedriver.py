@@ -14,26 +14,28 @@ def main():
 
     print("Build script voor Sint Maarten Campus Autologin Tool v2.0.3")
     print("=" * 60)
-    print("✓ webdriver_manager staat in requirements.txt")
-    print("✓ ChromeDriverManager is geïntegreerd in browser_session.py")
-    print("✓ ChromeDriver wordt automatisch gedownload bij eerste use")
+    print("[OK] webdriver_manager staat in requirements.txt")
+    print("[OK] ChromeDriverManager is geintegreerd in browser_session.py")
+    print("[OK] ChromeDriver wordt automatisch gedownload bij eerste use")
     print("=" * 60)
 
     # Zorg dat spec file clean is (geen hardcoded chromedriver paden)
     spec_file = scripts_dir / "SintMaartenCampusAutologin.spec"
-    spec_content = spec_file.read_text()
+    spec_content = spec_file.read_text(encoding="utf-8")
 
     # Controleer dat binaries leeg is
     if "binaries=[]," not in spec_content and "binaries = []," not in spec_content:
-        print("\n⚠ WAARSCHUWING: Spec file kan hardcoded chromedriver-paden bevatten.")
+        print("\n[WAARSCHUWING] Spec file kan hardcoded chromedriver-paden bevatten.")
         print("Dit kan problemen geven op verschillende systemen.")
         print("Reset de spec file naar: binaries=[],")
     else:
-        print("\n✓ Spec file is correct (binaries leeg)")
+        print("\n[OK] Spec file is correct (binaries leeg)")
 
     # Nu pyinstaller runnen
     print("\n[Building executable...]\n")
-    os.system("pyinstaller SintMaartenCampusAutologin.spec --clean --noconfirm")
+    exit_code = os.system("pyinstaller SintMaartenCampusAutologin.spec --clean --noconfirm")
+    if exit_code != 0:
+        sys.exit(exit_code)
 
 if __name__ == "__main__":
     main()
