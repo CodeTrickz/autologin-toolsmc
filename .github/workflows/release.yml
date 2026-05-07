@@ -44,7 +44,7 @@ jobs:
       - name: Build executable
         env:
           PYTHONPATH: ${{ github.workspace }}
-        run: python -m PyInstaller SintMaartenCampusAutologin.spec --clean --noconfirm --log-level INFO
+        run: python build_with_chromedriver.py
 
       - name: Check exe
         run: if (!(Test-Path "dist\SintMaartenCampusAutologin.exe")) { Get-ChildItem dist -ErrorAction SilentlyContinue; exit 1 }

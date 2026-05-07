@@ -5,7 +5,7 @@
 a = Analysis(
     ['src/web/desktop_app.py'],
     pathex=['.'],
-    binaries=[('C:\\Users\\vanho\\.wdm\\drivers\\chromedriver\\win64\\147.0.7727.117\\chromedriver-win32/chromedriver.exe', '.')],
+    binaries=[],
 
     datas=[
         ('templates', 'templates'),

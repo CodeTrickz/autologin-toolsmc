@@ -1,44 +1,38 @@
 #!/usr/bin/env python3
 """
 Build script voor Sint Maarten Campus Autologin Tool
-Download chromedriver en update spec file dynamisch.
+
+webdriver_manager handelt chromedriver beheer automatisch af.
+Dit script runnen: python build_with_chromedriver.py
 """
 import os
 import sys
 from pathlib import Path
-from webdriver_manager.chrome import ChromeDriverManager
 
 def main():
     scripts_dir = Path(__file__).parent
 
-    # Download chromedriver
-    chromedriver_path = ChromeDriverManager().install()
-    print(f"Chromedriver gedownload naar: {chromedriver_path}")
+    print("Build script voor Sint Maarten Campus Autologin Tool v2.0.3")
+    print("=" * 60)
+    print("✓ webdriver_manager staat in requirements.txt")
+    print("✓ ChromeDriverManager is geïntegreerd in browser_session.py")
+    print("✓ ChromeDriver wordt automatisch gedownload bij eerste use")
+    print("=" * 60)
 
-    # Update spec file
+    # Zorg dat spec file clean is (geen hardcoded chromedriver paden)
     spec_file = scripts_dir / "SintMaartenCampusAutologin.spec"
     spec_content = spec_file.read_text()
 
-    # Escape backslashes for Python string
-    escaped_path = chromedriver_path.replace('\\', '\\\\')
-
-    # Replace binaries line
-    old_binaries = "    binaries=[],\n"
-    new_binaries = f"    binaries=[('{escaped_path}', '.')],\n"
-
-    if old_binaries in spec_content:
-        spec_content = spec_content.replace(old_binaries, new_binaries)
-        spec_file.write_text(spec_content)
-        print("Spec file bijgewerkt met chromedriver pad.")
+    # Controleer dat binaries leeg is
+    if "binaries=[]," not in spec_content and "binaries = []," not in spec_content:
+        print("\n⚠ WAARSCHUWING: Spec file kan hardcoded chromedriver-paden bevatten.")
+        print("Dit kan problemen geven op verschillende systemen.")
+        print("Reset de spec file naar: binaries=[],")
     else:
-        print("Kon binaries niet vinden in spec file.")
-        print("Huidige spec content rond binaries:")
-        lines = spec_content.split('\n')
-        for i, line in enumerate(lines):
-            if 'binaries' in line:
-                print(f"{i+1}: {line}")
+        print("\n✓ Spec file is correct (binaries leeg)")
 
     # Nu pyinstaller runnen
+    print("\n[Building executable...]\n")
     os.system("pyinstaller SintMaartenCampusAutologin.spec --clean --noconfirm")
 
 if __name__ == "__main__":
