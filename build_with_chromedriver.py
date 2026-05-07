@@ -12,7 +12,7 @@ from pathlib import Path
 def main():
     scripts_dir = Path(__file__).parent
 
-    print("Build script voor Sint Maarten Campus Autologin Tool v2.0.3")
+    print("Build script voor Sint Maarten Campus Autologin Tool v2.0.4")
     print("=" * 60)
     print("[OK] webdriver_manager staat in requirements.txt")
     print("[OK] ChromeDriverManager is geintegreerd in browser_session.py")

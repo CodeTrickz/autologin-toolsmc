@@ -148,7 +148,7 @@ Dit maakt `SintMaartenCampusAutologin_Installatie.zip` met de .exe, `install.bat
 1. Maak lokaal de zip: `scripts\maak_zip_installatie.bat` (zo nodig eerst `scripts\build_exe.bat`).
 2. Run **`scripts\publish_release.bat`**:
    - Met **GitHub CLI (`gh`)** geïnstalleerd: maakt automatisch een release met tag `v<versie>` en uploadt de zip.
-   - Zonder `gh`: opent de pagina [New release](https://github.com/CodeTrickz/autologin-toolsmc/releases/new); kies tag (bv. `v2.0.2`), sleep de zip naar de pagina en klik op **Publish release**.
+   - Zonder `gh`: opent de pagina [New release](https://github.com/CodeTrickz/autologin-toolsmc/releases/new); kies tag (bv. `v2.0.4`), sleep de zip naar de pagina en klik op **Publish release**.
 3. Daarna is de zip downloadbaar via [Releases](https://github.com/CodeTrickz/autologin-toolsmc/releases).
 
 Voor een complete release package (map):
@@ -574,11 +574,15 @@ Deze tool is ontwikkeld voor intern gebruik bij Sint-Maarten Campus.
 
 ---
 
-**Versie:** 2.0.2  
-**Laatste update:** Maart 2026  
+**Versie:** 2.0.4  
+**Laatste update:** Mei 2026  
 **Auteur:** Wesley Van Hoof
 
 ### Changelog
+
+#### Versie 2.0.4 (Mei 2026)
+- ✅ **Fresh install .exe fix:** PyInstaller bundelt Selenium en webdriver-manager submodules vollediger, zodat nieuwe pc's niet crashen op ontbrekende `selenium.webdriver.chrome.webdriver` modules.
+- ✅ **Versie:** Desktop/webinterface toont nu versie 2.0.4.
 
 #### Versie 2.0.3 (Mei 2026)
 - ✅ **Selenium bundeling:** Selenium, pywebview en webdriver-manager zijn nu standaard in requirements.txt
