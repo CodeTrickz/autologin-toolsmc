@@ -574,8 +574,8 @@ Deze tool is ontwikkeld voor intern gebruik bij Sint-Maarten Campus.
 
 ---
 
-**Versie:** 2.0.2  
-**Laatste update:** Maart 2026  
+**Versie:** 2.0.3  
+**Laatste update:** Mei 2026  
 **Auteur:** Wesley Van Hoof
 
 ### Changelog
@@ -584,6 +584,7 @@ Deze tool is ontwikkeld voor intern gebruik bij Sint-Maarten Campus.
 - ✅ **Selenium bundeling:** Selenium, pywebview en webdriver-manager zijn nu standaard in requirements.txt
 - ✅ **ChromeDriver management:** ChromeDriverManager geïntegreerd zodat chromedriver automatisch wordt gedownload en beheerd
 - ✅ **Portable .exe:** Build script `build_with_chromedriver.py` bundelt chromedriver in de .exe; geen losse afhankelijkheden meer
+- ✅ **Fresh install .exe fix:** PyInstaller bundelt Selenium en webdriver-manager submodules vollediger, zodat nieuwe pc's niet crashen op ontbrekende `selenium.webdriver.chrome.webdriver` modules.
 
 #### Versie 2.0.2 (Maart 2026)
 - ✅ **Security hardening:** credentials en serverwachtwoorden lekken niet meer terug naar UI of API; verbinden voor RDP/SSH loopt server-side via `server_id`
