@@ -15,6 +15,7 @@ import hashlib
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.chrome.service import Service as ChromeService
+from webdriver_manager.chrome import ChromeDriverManager
 
 from src.core.credentials_manager import get_data_dir
 from src.auto_login import browser_cleanup  # noqa: F401  (registers atexit cleanup)
@@ -221,7 +222,8 @@ def get_shared_driver() -> webdriver.Chrome:
             return _SHARED_DRIVER
 
         try:
-            _SHARED_DRIVER = webdriver.Chrome(options=_build_options(), service=ChromeService())
+            service = ChromeService(executable_path=ChromeDriverManager().install())
+            _SHARED_DRIVER = webdriver.Chrome(options=_build_options(), service=service)
         except WebDriverException as e:
             # Meest voorkomende oorzaak: vaste user-data-dir is nog gelocked door een
             # achtergebleven Chrome instance van een vorige run.
@@ -264,9 +266,10 @@ def open_url_in_isolated_session(url: str, *, incognito: bool = False) -> webdri
     Handig voor cookie-isolatie (bv. tegelijk 2 accounts).
     """
     isolated_dir = _isolated_user_data_dir(incognito=incognito)
+    service = ChromeService(executable_path=ChromeDriverManager().install())
     driver = webdriver.Chrome(
         options=_build_options(user_data_dir=str(isolated_dir), incognito=incognito, profile_directory=""),
-        service=ChromeService(),
+        service=service,
     )
     driver.get(url)
     return driver
@@ -277,9 +280,10 @@ def open_url_in_account_session(service: str, url: str, account_id: str, *, inco
     Open URL in een aparte Chrome instance met een vaste profielmap per account.
     """
     profile_dir = _account_profile_dir(service, account_id)
+    service = ChromeService(executable_path=ChromeDriverManager().install())
     driver = webdriver.Chrome(
         options=_build_options(user_data_dir=str(profile_dir), incognito=incognito, profile_directory=""),
-        service=ChromeService(),
+        service=service,
     )
     driver.get(url)
     return driver

@@ -5,7 +5,8 @@
 a = Analysis(
     ['src/web/desktop_app.py'],
     pathex=['.'],
-    binaries=[],
+    binaries=[('C:\\Users\\vanho\\.wdm\\drivers\\chromedriver\\win64\\147.0.7727.117\\chromedriver-win32/chromedriver.exe', '.')],
+
     datas=[
         ('templates', 'templates'),
         ('static_export', 'static_export'),
@@ -13,6 +14,11 @@ a = Analysis(
     ],
     hiddenimports=[
         'selenium', 'selenium.webdriver', 'selenium.webdriver.chrome',
+        'selenium.webdriver.chrome.service', 'selenium.webdriver.chrome.options',
+        'selenium.webdriver.common.by', 'selenium.webdriver.common.keys',
+        'selenium.webdriver.support.ui', 'selenium.webdriver.support.expected_conditions',
+        'selenium.common.exceptions', 'selenium.webdriver.remote.webdriver',
+        'webdriver_manager', 'webdriver_manager.chrome',
         'flask', 'cryptography', 'markdown', 'webview', 'dotenv', 'requests',
         'src.auto_login.auto_smartschool_login', 'src.auto_login.auto_microsoft_admin_login',
         'src.auto_login.auto_google_admin_login', 'src.auto_login.auto_easy4u_login',

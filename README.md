@@ -580,6 +580,11 @@ Deze tool is ontwikkeld voor intern gebruik bij Sint-Maarten Campus.
 
 ### Changelog
 
+#### Versie 2.0.3 (Mei 2026)
+- ✅ **Selenium bundeling:** Selenium, pywebview en webdriver-manager zijn nu standaard in requirements.txt
+- ✅ **ChromeDriver management:** ChromeDriverManager geïntegreerd zodat chromedriver automatisch wordt gedownload en beheerd
+- ✅ **Portable .exe:** Build script `build_with_chromedriver.py` bundelt chromedriver in de .exe; geen losse afhankelijkheden meer
+
 #### Versie 2.0.2 (Maart 2026)
 - ✅ **Security hardening:** credentials en serverwachtwoorden lekken niet meer terug naar UI of API; verbinden voor RDP/SSH loopt server-side via `server_id`
 - ✅ **Administrator hardening:** admin-portals zijn vastgezet op officiële URLs, admin-logins openen in geharde geïsoleerde incognito-sessies en Chrome sync/password manager/autofill staan uit
