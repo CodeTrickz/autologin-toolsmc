@@ -101,7 +101,7 @@ def login_intune_admin() -> None:
         except Exception:
             pass
 
-        print("Intune Admin login uitgevoerd in een geharde, geïsoleerde browser-sessie.")
+        print("Intune Admin login uitgevoerd in een herbruikbare incognito browser-sessie.")
         print("Als er 2FA vereist is, vul die nu handmatig in.")
     finally:
         pass

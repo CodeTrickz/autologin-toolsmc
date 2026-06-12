@@ -2,8 +2,9 @@
 ; Vereist: Inno Setup 6 of hoger
 
 [Setup]
+AppId={{7F6A6A2D-8A35-4DA8-B6F1-0A174011CAFE}
 AppName=Sint Maarten Campus Autologin Tool
-AppVersion=2.0.1
+AppVersion=2.0.5-beta.1
 AppPublisher=Sint Maarten Campus
 AppPublisherURL=
 DefaultDirName={pf}\SintMaartenCampusAutologin
@@ -15,6 +16,9 @@ SolidCompression=yes
 PrivilegesRequired=admin
 ArchitecturesInstallIn64BitMode=x64
 UninstallDisplayIcon={app}\SintMaartenCampusAutologin.exe
+CloseApplications=yes
+CloseApplicationsFilter=SintMaartenCampusAutologin.exe
+RestartApplications=no
 SetupIconFile=
 WizardImageFile=
 WizardSmallImageFile=
@@ -43,10 +47,61 @@ Filename: "{app}\start_autologin.bat"; Description: "Start Sint Maarten Campus A
 Type: filesandordirs; Name: "{app}"
 
 [Code]
+var
+  RemoveLocalDataOnUninstall: Boolean;
+
+function IsExistingInstallation: Boolean;
+begin
+  Result := DirExists(ExpandConstant('{app}'));
+end;
+
+procedure StopRunningApplication;
+var
+  ResultCode: Integer;
+begin
+  Exec(ExpandConstant('{cmd}'), '/C taskkill /F /IM SintMaartenCampusAutologin.exe >nul 2>nul', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Sleep(1500);
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  if IsExistingInstallation then
+    Log('Bestaande installatie gevonden. Applicatie wordt gestopt voor update.')
+  else
+    Log('Geen bestaande installatie gevonden. Nieuwe installatie wordt uitgevoerd.');
+
+  StopRunningApplication;
+  Result := '';
+end;
+
+function InitializeUninstall: Boolean;
+begin
+  RemoveLocalDataOnUninstall :=
+    MsgBox(
+      'Remove local credentials and configuration?' + #13#10 + #13#10 +
+      'Default: NO' + #13#10 + #13#10 +
+      'Kies Nee om encrypted credentials, configuratie en gebruikersvoorkeuren te bewaren.',
+      mbConfirmation,
+      MB_YESNO or MB_DEFBUTTON2
+    ) = IDYES;
+  Result := True;
+end;
+
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+begin
+  if CurUninstallStep = usUninstall then
+    StopRunningApplication;
+
+  if (CurUninstallStep = usPostUninstall) and RemoveLocalDataOnUninstall then
+  begin
+    DelTree(ExpandConstant('{localappdata}\SintMaartenCampusAutologin'), True, True, True);
+  end;
+end;
+
 procedure InitializeWizard;
 begin
   WizardForm.LicenseLabel1.Caption := 'Sint Maarten Campus Autologin Tool' + #13#10 + 
-    'Versie 2.0.1' + #13#10 + #13#10 +
+    'Versie 2.0.5-beta.1' + #13#10 + #13#10 +
     'Deze tool helpt bij automatische logins voor:' + #13#10 +
     '- Smartschool' + #13#10 +
     '- Microsoft Admin' + #13#10 +

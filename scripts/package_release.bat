@@ -18,6 +18,12 @@ if not exist dist\%EXE_NAME%.exe (
     exit /b 1
 )
 
+echo Checking for sensitive data before packaging...
+python wipe_before_build.py
+if errorlevel 1 (
+    echo WARNING: wipe_before_build failed. Continuing with staging cleanup.
+)
+
 echo Creating release directory...
 if exist %RELEASE_DIR% rmdir /s /q %RELEASE_DIR%
 mkdir %RELEASE_DIR%
@@ -30,6 +36,14 @@ if exist templates xcopy templates %RELEASE_DIR%\templates\ /E /I /Y >nul
 
 echo Copying uninstaller...
 if exist "%SCRIPT_DIR%Uninstall_SintMaartenCampusAutologin.bat" copy "%SCRIPT_DIR%Uninstall_SintMaartenCampusAutologin.bat" %RELEASE_DIR%\ >nul
+
+echo Removing sensitive files from release staging if present...
+for %%F in (credentials.json rdp_servers.json ssh_servers.json .env .credentials_key .credentials_key.dpapi) do (
+    if exist "%RELEASE_DIR%\%%F" del /F /Q "%RELEASE_DIR%\%%F" >nul 2>&1
+)
+for /D %%D in ("%RELEASE_DIR%\chrome_user_data*" "%RELEASE_DIR%\chrome_profiles*") do (
+    if exist "%%~fD" rmdir /S /Q "%%~fD" >nul 2>&1
+)
 
 echo Copying documentation...
 copy README.md %RELEASE_DIR%\ >nul

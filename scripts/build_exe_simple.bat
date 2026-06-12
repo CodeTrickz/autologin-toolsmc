@@ -13,6 +13,12 @@ if exist dist rmdir /s /q dist
 if exist build rmdir /s /q build
 if exist *.spec del /F /Q *.spec
 
+echo Removing development credentials and server data before build...
+python wipe_before_build.py
+if errorlevel 1 (
+    echo WARNING: wipe_before_build failed. Build continues, but verify release contents manually.
+)
+
 echo Building executable...
 pyinstaller --name SintMaartenCampusAutologin --onefile --console --add-data "templates;templates" --add-data "README.md;." --hidden-import selenium --hidden-import flask --hidden-import cryptography --hidden-import markdown --hidden-import auto_smartschool_login --hidden-import auto_microsoft_admin_login --hidden-import auto_google_admin_login --hidden-import auto_easy4u_login --hidden-import auto_rdp_sessions --hidden-import auto_ssh_connect --hidden-import credentials_manager --hidden-import security_utils --hidden-import clean_credentials --hidden-import migrate_key_file --hidden-import security_test --hidden-import clean_servers --clean --noconfirm web_interface.py
 

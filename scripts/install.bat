@@ -45,15 +45,26 @@ if exist "%SCRIPT_DIR%SintMaartenCampusAutologin.exe" (
 
 REM Vraag installatie locatie
 set "INSTALL_DIR=%ProgramFiles%\SintMaartenCampusAutologin"
+set "APPDATA_DIR=%LOCALAPPDATA%\SintMaartenCampusAutologin"
 echo Installatie locatie: %INSTALL_DIR%
 echo.
+
+if exist "%INSTALL_DIR%\SintMaartenCampusAutologin.exe" (
+    echo Bestaande installatie gevonden. Applicatie wordt gestopt voor update...
+) else (
+    echo Geen bestaande installatie gevonden. Nieuwe installatie wordt uitgevoerd.
+)
+
+REM Stop draaiende applicatie vóór bestanden worden vervangen. Gebruikersdata blijft behouden.
+taskkill /F /IM SintMaartenCampusAutologin.exe >nul 2>&1
+timeout /t 2 /nobreak >nul
 
 REM Maak installatie directory
 if not exist "%INSTALL_DIR%" (
     mkdir "%INSTALL_DIR%"
     echo Installatie directory aangemaakt.
 ) else (
-    echo Installatie directory bestaat al. Overschrijven...
+    echo Installatie directory bestaat al. Applicatiebestanden worden bijgewerkt...
 )
 
 REM Kopieer de .exe
@@ -122,7 +133,17 @@ echo taskkill /F /IM SintMaartenCampusAutologin.exe ^>nul 2^>^&1
 echo timeout /t 2 /nobreak ^>nul
 echo del /F /Q "%%DESKTOP_LNK%%" ^>nul 2^>^&1
 echo del /F /Q "%%STARTMENU_LNK%%" ^>nul 2^>^&1
+echo echo.
+echo echo Lokale credentials en configuratie verwijderen?
+echo echo Map: %%APPDATA_DIR%%
+echo choice /C YN /N /D N /T 30 /M "Remove local credentials and configuration? [y/N] "
+echo if errorlevel 2 goto keepdata
 echo if exist "%%APPDATA_DIR%%" rd /S /Q "%%APPDATA_DIR%%"
+echo echo Gebruikersdata verwijderd.
+echo goto afterdata
+echo :keepdata
+echo echo Gebruikersdata bewaard.
+echo :afterdata
 echo.
 echo set "HELPER=%%TEMP%%\smca_uninstall_helper.bat"
 echo echo @echo off ^> "%%HELPER%%"

@@ -1,6 +1,6 @@
 @echo off
 REM Uninstaller voor Sint Maarten Campus Autologin Tool
-REM Verwijdert elke geïnstalleerde versie (Program Files + AppData).
+REM Verwijdert de geïnstalleerde applicatie. Gebruikersdata wordt alleen verwijderd na bevestiging.
 REM Rechtermuisknop -> "Als administrator uitvoeren" aanbevolen.
 
 echo ========================================
@@ -30,6 +30,12 @@ echo Verwijderen van snelkoppelingen...
 if exist "%DESKTOP_LNK%" del /F /Q "%DESKTOP_LNK%" && echo   - Bureaublad snelkoppeling verwijderd.
 if exist "%STARTMENU_LNK%" del /F /Q "%STARTMENU_LNK%" && echo   - Start Menu snelkoppeling verwijderd.
 
+echo.
+echo Lokale credentials en configuratie verwijderen?
+echo Map: %APPDATA_DIR%
+choice /C YN /N /D N /T 30 /M "Remove local credentials and configuration? [y/N] "
+if errorlevel 2 goto keepdata
+
 echo Verwijderen van gebruikersdata (credentials, servers)...
 if exist "%APPDATA_DIR%" (
     rd /S /Q "%APPDATA_DIR%"
@@ -37,6 +43,12 @@ if exist "%APPDATA_DIR%" (
 ) else (
     echo   - Geen gebruikersdata map gevonden.
 )
+goto afterdata
+
+:keepdata
+echo Gebruikersdata bewaard.
+
+:afterdata
 
 echo Verwijderen van programma-map...
 if exist "%INSTALL_DIR%" (

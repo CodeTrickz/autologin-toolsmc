@@ -101,7 +101,7 @@ def login_azure_admin() -> None:
         except Exception:
             pass
 
-        print("Azure Admin login uitgevoerd in een geharde, geïsoleerde browser-sessie.")
+        print("Azure Admin login uitgevoerd in een herbruikbare incognito browser-sessie.")
         print("Als er 2FA vereist is, vul die nu handmatig in.")
     finally:
         pass

@@ -132,7 +132,7 @@ Voor distributie als standalone Windows applicatie (uitvoeren vanuit de projectm
 scripts\build_exe.bat
 ```
 
-- **Wipe vóór build:** De build wist automatisch credentials en servergegevens uit de ontwikkelmap (`src/core`), zodat er geen gevoelige data in de .exe of zip komt. Optioneel: `python wipe_before_build.py --appdata` om ook gebruikersdata (AppData) te wissen.
+- **Wipe vóór build:** De build wist automatisch credentials en servergegevens uit de ontwikkelmap (`src/core`), zodat er geen gevoelige data in de .exe of zip komt. Gebruikersdata in AppData wordt nooit door build/update scripts verwijderd; alleen uninstall mag dit doen na bevestiging.
 - De .exe komt in de map `dist\`.
 
 **Zip voor verspreiding naar andere PC's:**
@@ -141,7 +141,7 @@ scripts\build_exe.bat
 scripts\maak_zip_installatie.bat
 ```
 
-Dit maakt `SintMaartenCampusAutologin_Installatie.zip` met de .exe, `install.bat` en **Uninstall_SintMaartenCampusAutologin.bat**. Gebruikers kunnen na installatie de applicatie verwijderen met de uninstaller (verwijdert elke geïnstalleerde versie, inclusief Program Files en AppData).
+Dit maakt `SintMaartenCampusAutologin_Installatie.zip` met de .exe, `install.bat` en **Uninstall_SintMaartenCampusAutologin.bat**. Gebruikers kunnen na installatie de applicatie verwijderen met de uninstaller. Bij uninstall wordt gevraagd of lokale credentials/configuratie in AppData verwijderd moeten worden; standaard is **Nee**.
 
 **Zip op GitHub zetten (zodat anderen hem kunnen downloaden):**
 
@@ -156,6 +156,8 @@ Voor een complete release package (map):
 ```bash
 scripts\package_release.bat
 ```
+
+Voor release-validatie: gebruik de checklist in `docs\REGRESSION_CHECKLIST.md`.
 
 ### Stap 3: (Optioneel) Installeer PuTTY
 
@@ -273,7 +275,7 @@ De web interface bevat een Utilities pagina waar je verschillende onderhoudstake
 ### Migrate Key File
 - Migreert de encryptie key file van de oude locatie naar een veiligere locatie
 - Oude key file blijft staan voor backward compatibility
-- Nieuwe locatie: `%LOCALAPPDATA%\SintMaartenCampusAutologin\.credentials_key` (Windows)
+- Nieuwe locatie: `%LOCALAPPDATA%\SintMaartenCampusAutologin\.credentials_key.dpapi` (Windows)
 
 ### Security Test
 - Voert automatische security tests uit
@@ -373,7 +375,7 @@ Alle wachtwoorden worden encrypted opgeslagen met **Fernet (AES-128)** encryptie
 
 - **Encryptie methode:** Fernet symmetric encryption
 - **Key opslag:** Encryptie key wordt opgeslagen in een beveiligde locatie:
-  - Windows: `%LOCALAPPDATA%\SintMaartenCampusAutologin\.credentials_key`
+  - Windows: `%LOCALAPPDATA%\SintMaartenCampusAutologin\.credentials_key.dpapi`
   - Linux/macOS: `~/.config/sintmaartencampus-autologin/.credentials_key`
 - **Key beveiliging:** Key file heeft restricted permissions (alleen eigenaar kan lezen)
 
@@ -409,7 +411,7 @@ Alle user input wordt gevalideerd en gesanitized:
 
 - **.gitignore:** Alle gevoelige bestanden worden genegeerd:
   - `credentials.json`
-  - `.credentials_key`
+  - `.credentials_key` / `.credentials_key.dpapi`
   - `.env`
   - `rdp_servers.json`
   - `ssh_servers.json`
@@ -558,7 +560,7 @@ Alle user input wordt gevalideerd en gesanitized:
    ```
 
 5. **Backup encryptie key:**
-   - Backup de `.credentials_key` file op een veilige locatie
+   - Backup de `.credentials_key.dpapi` file op een veilige locatie
    - Zonder deze key kun je encrypted credentials niet decrypten
 
 ## 📞 Ondersteuning
@@ -574,11 +576,32 @@ Deze tool is ontwikkeld voor intern gebruik bij Sint-Maarten Campus.
 
 ---
 
-**Versie:** 2.0.4  
-**Laatste update:** Mei 2026  
+**Versie:** 2.0.5-beta.1  
+**Laatste update:** Juni 2026  
 **Auteur:** Wesley Van Hoof
 
 ### Changelog
+
+#### Versie 2.0.5-beta.1 (Juni 2026)
+- ✅ **New SessionManager**
+- ✅ **Browser reuse instead of browser replacement**
+- ✅ **Shared tabs for normal sessions**
+- ✅ **Shared tabs for incognito sessions**
+- ✅ **Separate normal/incognito browser handling**
+- ✅ **Google Admin login flow reworked**
+- ✅ **Microsoft SSO detection improved**
+- ✅ **Improved application shutdown**
+- ✅ **Fixed lingering background processes**
+- ✅ **Installer now preserves local credentials during updates**
+
+**Known status:** This is a beta build intended for testing.
+
+Please report any issues with:
+- Google Admin
+- Smartschool
+- Easy4U
+- Update installation
+- Browser session handling
 
 #### Versie 2.0.4 (Mei 2026)
 - ✅ **Fresh install .exe fix:** PyInstaller bundelt Selenium en webdriver-manager submodules vollediger, zodat nieuwe pc's niet crashen op ontbrekende `selenium.webdriver.chrome.webdriver` modules.

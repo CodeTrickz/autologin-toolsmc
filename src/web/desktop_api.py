@@ -39,6 +39,7 @@ from src.core.security_utils import (
     normalize_service_url,
     preserve_existing_secret,
 )
+from src.core.shutdown import shutdown_event, start_thread
 
 
 class DesktopAPI:
@@ -306,6 +307,8 @@ class DesktopAPI:
             return {"success": False, "error": str(e)}
 
     def login(self, service):
+        if shutdown_event.is_set():
+            return {"success": False, "error": "Applicatie wordt afgesloten"}
         valid = ["smartschool", "smartschool_admin", "microsoft_admin", "intune_admin", "azure_admin", "google_admin", "easy4u"]
         if service not in valid:
             return {"success": False, "error": "Onbekende service"}
@@ -325,8 +328,8 @@ class DesktopAPI:
                 "google_admin": login_google_admin,
                 "easy4u": login_easy4u,
             }
-            thread = threading.Thread(target=funcs[service], daemon=True)
-            thread.start()
+            thread = threading.Thread(target=funcs[service], daemon=True, name=f"login-{service}")
+            start_thread(thread)
             return {"success": True, "message": f"{service} login gestart"}
         except Exception as e:
             return {"success": False, "error": str(e)}

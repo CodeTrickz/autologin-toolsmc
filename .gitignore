@@ -35,6 +35,7 @@ env/
 # Sensitive files
 credentials.json
 .credentials_key
+.credentials_key.dpapi
 .env
 rdp_servers.json
 ssh_servers.json

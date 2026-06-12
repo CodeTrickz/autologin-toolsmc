@@ -3,9 +3,8 @@ Wis credentials en servergegevens vóór het bouwen van een distribueerbare .exe
 Zo komt er geen gevoelige data in de build of op andere devices.
 
 - In ontwikkelmodus: wist bestanden in src/core (credentials.json, rdp_servers.json, etc.)
-- Optioneel: wist ook AppData\\Local\\SintMaartenCampusAutologin (--appdata)
+- Verwijdert nooit gebruikersdata uit AppData. Alleen uninstall mag dat doen, na bevestiging.
 """
-import os
 import sys
 from pathlib import Path
 
@@ -16,14 +15,13 @@ if str(SCRIPTS_DIR) not in sys.path:
 
 # Data-dir in dev = src/core (zelfde als credentials_manager wanneer niet frozen)
 DEV_DATA_DIR = SCRIPTS_DIR / "src" / "core"
-APP_DATA_NAME = "SintMaartenCampusAutologin"
-
 FILES_TO_WIPE = [
     "credentials.json",
     "rdp_servers.json",
     "ssh_servers.json",
     ".env",
     ".credentials_key",
+    ".credentials_key.dpapi",
 ]
 
 
@@ -45,23 +43,14 @@ def wipe_dir(data_dir: Path, label: str) -> int:
 
 
 def main():
-    wipe_appdata = "--appdata" in sys.argv or "-a" in sys.argv
     total = 0
 
-    # 1) Dev-datamap (src/core)
+    # Dev-datamap (src/core). AppData blijft altijd behouden.
     print("Wissen van ontwikkel-datamap (src/core)...")
     total += wipe_dir(DEV_DATA_DIR, "dev")
 
-    # 2) Optioneel: AppData (gebruikersdata van eerder geïnstalleerde .exe)
-    if wipe_appdata:
-        if os.name != "nt":
-            appdata_dir = Path.home() / ".config" / APP_DATA_NAME
-        else:
-            appdata_dir = Path(os.environ.get("LOCALAPPDATA", Path.home())) / APP_DATA_NAME
-        print("Wissen van AppData (gebruikersdata)...")
-        total += wipe_dir(appdata_dir, "AppData")
-    else:
-        print("Tip: gebruik --appdata om ook AppData\\SintMaartenCampusAutologin te wissen.")
+    if "--appdata" in sys.argv or "-a" in sys.argv:
+        print("AppData wordt niet gewist. Alleen uninstall mag gebruikersdata verwijderen, na bevestiging.")
 
     print(f"Klaar. {total} bestand(en) verwijderd.")
     return 0

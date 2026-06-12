@@ -26,6 +26,12 @@ if not exist "dist\%EXE_NAME%.exe" (
     )
 )
 
+echo Controleren op gevoelige data voor packaging...
+python wipe_before_build.py
+if errorlevel 1 (
+    echo WAARSCHUWING: wipe_before_build mislukt. Packaging gaat door, staging wordt extra gecontroleerd.
+)
+
 echo Aanmaken van map: %ZIP_DIR%
 if exist "%ZIP_DIR%" rmdir /s /q "%ZIP_DIR%"
 mkdir "%ZIP_DIR%"
@@ -35,6 +41,14 @@ copy "dist\%EXE_NAME%.exe" "%ZIP_DIR%\" >nul
 copy "%SCRIPT_DIR%install.bat" "%ZIP_DIR%\" >nul
 copy "%SCRIPT_DIR%Uninstall_SintMaartenCampusAutologin.bat" "%ZIP_DIR%\" >nul
 if exist "README.md" copy "README.md" "%ZIP_DIR%\" >nul
+
+echo Verwijderen van gevoelige bestanden uit staging indien aanwezig...
+for %%F in (credentials.json rdp_servers.json ssh_servers.json .env .credentials_key .credentials_key.dpapi) do (
+    if exist "%ZIP_DIR%\%%F" del /F /Q "%ZIP_DIR%\%%F" >nul 2>&1
+)
+for /D %%D in ("%ZIP_DIR%\chrome_user_data*" "%ZIP_DIR%\chrome_profiles*") do (
+    if exist "%%~fD" rmdir /S /Q "%%~fD" >nul 2>&1
+)
 
 echo Schrijven van INSTALLATIE.txt...
 (
@@ -49,6 +63,10 @@ echo 3. Rechtermuisknop op install.bat --^> "Als administrator uitvoeren"
 echo 4. Volg de instructies. Er wordt een snelkoppeling op het bureaublad gemaakt.
 echo 5. Start de applicatie via het icoon "Sint Maarten Campus Autologin" op het bureaublad.
 echo.
+echo UPDATE:
+echo - Voer install.bat opnieuw uit. De draaiende applicatie wordt gestopt en de bestanden worden vervangen.
+echo - Lokale credentials, configuratie en voorkeuren in %%LOCALAPPDATA%%\SintMaartenCampusAutologin blijven bewaard.
+echo.
 echo EERSTE KEER GEBRUIK:
 echo - Configureer je inloggegevens via Credentials in de applicatie.
 echo - Chrome moet geinstalleerd zijn voor de auto-login functies.
@@ -56,6 +74,7 @@ echo.
 echo VERWIJDEREN ^(alle versies^):
 echo - Voer Uninstall_SintMaartenCampusAutologin.bat uit ^(uit deze map of na installatie uit Program Files^)
 echo - Of: Ga naar C:\Program Files\SintMaartenCampusAutologin en voer uninstall.bat uit
+echo - De uninstaller vraagt of lokale credentials en configuratie verwijderd moeten worden. Standaard: Nee.
 echo.
 echo Voor meer informatie: zie README.md in deze map.
 echo =================================================

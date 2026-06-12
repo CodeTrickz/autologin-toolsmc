@@ -12,7 +12,6 @@ Veiligheid:
 """
 from __future__ import annotations
 
-import atexit
 import json
 import os
 import shutil
@@ -21,6 +20,7 @@ import sys
 from pathlib import Path
 
 from src.core.credentials_manager import get_data_dir
+from src.core.shutdown import register_shutdown_callback
 
 
 def _is_truthy(value: str | None) -> bool:
@@ -140,5 +140,5 @@ def _cleanup_on_exit() -> None:
         pass
 
 
-atexit.register(_cleanup_on_exit)
+register_shutdown_callback("browser_profile_cleanup", _cleanup_on_exit)
 

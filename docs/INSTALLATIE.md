@@ -123,13 +123,13 @@ Voordat je de applicatie installeert, zorg ervoor dat je hebt:
 3. (Optioneel) Verwijder de snelkoppeling uit de Startup folder
 4. (Optioneel) Verwijder de taak uit Task Scheduler
 
-**Let op:** Je opgeslagen credentials worden ook verwijderd. Maak een backup als je deze wilt behouden.
+**Let op:** Bij uninstall wordt gevraagd of lokale credentials en configuratie verwijderd moeten worden. Standaard is **Nee**, zodat je gegevens bewaard blijven bij verwijderen of opnieuw installeren.
 
 ## Backup van Credentials
 
 Je credentials worden opgeslagen in:
-- `%LOCALAPPDATA%\SintMaartenCampusAutologin\.credentials_key` (encryptie key)
-- In de folder waar de applicatie staat: `credentials.json` (versleutelde credentials)
+- `%LOCALAPPDATA%\SintMaartenCampusAutologin\.credentials_key.dpapi` (encryptie key op Windows)
+- `%LOCALAPPDATA%\SintMaartenCampusAutologin\credentials.json` (versleutelde credentials)
 
 Voor backup, kopieer beide bestanden naar een veilige locatie.
 

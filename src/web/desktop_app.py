@@ -11,8 +11,10 @@ import time
 import socket
 import requests
 import http.server
+from functools import partial
 from pathlib import Path
 from dotenv import load_dotenv
+from werkzeug.serving import make_server
 
 # Fix encoding voor Windows (voorkom UnicodeEncodeError bij .exe zonder console)
 if sys.platform == 'win32':
@@ -31,6 +33,13 @@ if str(SCRIPTS_DIR) not in sys.path:
 
 # Import Flask app en versie
 from src.web.web_interface import app, APP_VERSION
+from src.core.shutdown import (
+    register_shutdown_callback,
+    request_shutdown,
+    shutdown_application,
+    shutdown_event,
+    start_thread,
+)
 
 # Laad .env
 load_dotenv()
@@ -60,7 +69,9 @@ def is_port_in_use(port):
 
 def wait_for_server(url, max_wait=10):
     """Wacht tot de Flask server klaar is"""
-    for i in range(max_wait):
+    for i in range(max_wait * 2):
+        if shutdown_event.is_set():
+            return False
         try:
             response = requests.get(url, timeout=1)
             if response.status_code == 200:
@@ -71,18 +82,49 @@ def wait_for_server(url, max_wait=10):
     return False
 
 
+class ManagedFlaskServer:
+    def __init__(self, port):
+        self.port = port
+        self.server = None
+
+    def serve(self):
+        """Start Flask server until shutdown is requested."""
+        self.server = make_server("127.0.0.1", self.port, app)
+        self.server.timeout = 0.5
+        register_shutdown_callback("flask_server", self.shutdown)
+        while not shutdown_event.is_set():
+            self.server.handle_request()
+        self.server.server_close()
+
+    def shutdown(self):
+        if self.server:
+            try:
+                self.server.shutdown()
+            except Exception:
+                pass
+
+
 def start_flask_server(port):
     """Start Flask server in achtergrond thread"""
-    debug_mode = os.environ.get("FLASK_DEBUG", "False").lower() == "true"
-    app.run(host="127.0.0.1", port=port, debug=debug_mode, use_reloader=False)
+    ManagedFlaskServer(port).serve()
 
 
 def run_static_server(port, directory):
     """Start een eenvoudige bestandsserver voor static_export (geen Flask)."""
-    os.chdir(directory)
-    handler = http.server.SimpleHTTPRequestHandler
+    handler = partial(http.server.SimpleHTTPRequestHandler, directory=directory)
     server = http.server.HTTPServer(("127.0.0.1", port), handler)
-    server.serve_forever()
+    server.timeout = 0.5
+    register_shutdown_callback("static_server", server.shutdown)
+    while not shutdown_event.is_set():
+        server.handle_request()
+    server.server_close()
+
+
+def _register_window_shutdown(window):
+    try:
+        window.events.closed += request_shutdown
+    except Exception:
+        pass
 
 
 def main():
@@ -126,8 +168,9 @@ def main():
                 target=run_static_server,
                 args=(server_port, str(static_export)),
                 daemon=True,
+                name="static-server",
             )
-            server_thread.start()
+            start_thread(server_thread)
             # Start op loading.html (zelfde server); die redirect naar index.html
             url = f"http://127.0.0.1:{server_port}/loading.html"
             time.sleep(0.6)
@@ -146,7 +189,11 @@ def main():
                 title, url=url, width=1200, height=800,
                 min_size=(900, 600), resizable=True, js_api=api,
             )
-            webview.start(debug=not getattr(sys, "frozen", False))
+            _register_window_shutdown(window)
+            try:
+                webview.start(debug=not getattr(sys, "frozen", False))
+            finally:
+                shutdown_application()
             return
 
     # Normale modus: Flask op localhost + webview (geen aparte browser)
@@ -164,7 +211,11 @@ def main():
                     min_size=(900, 600), resizable=True,
                     js_api=api
                 )
-                webview.start(debug=not getattr(sys, "frozen", False))
+                _register_window_shutdown(window)
+                try:
+                    webview.start(debug=not getattr(sys, "frozen", False))
+                finally:
+                    shutdown_application()
                 return
             except Exception as e:
                 try:
@@ -177,8 +228,8 @@ def main():
             webbrowser.open(url)
             return
 
-    flask_thread = threading.Thread(target=start_flask_server, args=(port,), daemon=True)
-    flask_thread.start()
+    flask_thread = threading.Thread(target=start_flask_server, args=(port,), daemon=True, name="flask-server")
+    start_thread(flask_thread)
     if not wait_for_server(url, max_wait=15):
         return
     time.sleep(2.0)  # WebView2 en server stabiel laten worden
@@ -194,19 +245,29 @@ def main():
                 min_size=(900, 600), resizable=True,
                 js_api=api
             )
-            webview.start(debug=not getattr(sys, "frozen", False))
+            _register_window_shutdown(window)
+            try:
+                webview.start(debug=not getattr(sys, "frozen", False))
+            finally:
+                shutdown_application()
         except Exception as e:
             try:
                 print(f"Fout bij starten webview: {e}")
             except Exception:
                 pass
             webbrowser.open(url)
-            while True:
-                time.sleep(1)
+            try:
+                while not shutdown_event.wait(1):
+                    pass
+            finally:
+                shutdown_application()
     else:
         webbrowser.open(url)
-        while True:
-            time.sleep(1)
+        try:
+            while not shutdown_event.wait(1):
+                pass
+        finally:
+            shutdown_application()
 
 
 if __name__ == "__main__":

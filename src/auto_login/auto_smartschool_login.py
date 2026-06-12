@@ -15,7 +15,7 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from src.core.credentials_manager import get_credential, get_data_dir
-from src.auto_login.browser_session import open_url_for_service, open_url_in_isolated_session
+from src.auto_login.browser_session import open_url_for_service
 from src.auto_login.input_utils import clear_and_human_type
 from src.auto_login.microsoft_account_switch import get_microsoft_email_input, prepare_microsoft_login_for_email
 from src.auto_login.microsoft_site_data import clear_microsoft_site_data
@@ -185,15 +185,14 @@ def _do_smartschool_login(account_id: str, account_password: str) -> None:
     """Voer Smartschool login uit: e-mail via Microsoft, username via standaard login."""
     load_dotenv()
     account_id = (account_id or "").strip()
-    # Voor username-login willen we cookie-isolatie zodat je 2 accounts tegelijk kan openhouden.
-    # Incognito is per venster/proces (niet per tab), dus we starten hiervoor een aparte Chrome instance.
+    # Voor username-login gebruiken we de herbruikbare incognito browser.
     if _looks_like_email(account_id):
         driver = open_url_for_service("smartschool", SMARTSCHOOL_URL, new_tab=True, account_id=account_id)
         # Wis enkel Microsoft site-data voor deze loginpoging om account-conflict te voorkomen.
         clear_microsoft_site_data(driver)
         driver.get(SMARTSCHOOL_URL)
     else:
-        driver = open_url_in_isolated_session(SMARTSCHOOL_URL, incognito=True)
+        driver = open_url_for_service("smartschool", SMARTSCHOOL_URL, new_tab=True, account_id=account_id, incognito=True)
 
     try:
         wait = WebDriverWait(driver, 30)
@@ -208,7 +207,7 @@ def _do_smartschool_login(account_id: str, account_password: str) -> None:
 
         used_direct_login = _try_direct_smartschool_login(driver, wait, account_id, account_password)
         if used_direct_login:
-            print("Smartschool standaardlogin (gebruikersnaam) uitgevoerd in incognito sessie (venster blijft open).")
+            print("Smartschool standaardlogin (gebruikersnaam) uitgevoerd in herbruikbare incognito sessie (tab blijft open).")
             return
 
         raise RuntimeError(
@@ -236,4 +235,3 @@ def login_smartschool_admin_via_microsoft() -> None:
 
 if __name__ == "__main__":
     login_smartschool_via_microsoft()
-

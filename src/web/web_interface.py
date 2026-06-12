@@ -7,6 +7,7 @@ import secrets
 from pathlib import Path
 from flask import Flask, render_template, jsonify, request, session, has_request_context
 from dotenv import load_dotenv
+from werkzeug.serving import make_server
 
 # Add parent directory to path for imports
 SCRIPTS_DIR = Path(__file__).parent.parent.parent
@@ -28,6 +29,7 @@ from src.core.credentials_manager import (
     save_encrypted_credentials,
     sync_to_env,
 )
+from src.core.shutdown import shutdown_application, shutdown_event, start_thread
 
 # Import security utilities
 from src.core.security_utils import (
@@ -52,7 +54,7 @@ TEMPLATES_DIR = SCRIPTS_DIR / "templates"
 app = Flask(__name__, template_folder=str(TEMPLATES_DIR))
 
 # Applicatieversie (één plek; ook zichtbaar in webinterface en API)
-APP_VERSION = "2.0.4"
+APP_VERSION = "2.0.5-beta.1"
 DATA_DIR = get_data_dir()
 RDP_SERVERS_FILE = DATA_DIR / "rdp_servers.json"
 SSH_SERVERS_FILE = DATA_DIR / "ssh_servers.json"
@@ -542,6 +544,8 @@ def documentation():
 @app.route("/api/login/<service>", methods=["POST"])
 def start_login(service):
     """Start een login module voor een specifieke service."""
+    if shutdown_event.is_set():
+        return jsonify({"success": False, "error": "Applicatie wordt afgesloten"}), 503
     # Valideer service naam
     if not validate_service_name(service):
         return jsonify({"success": False, "error": "Onbekende service"}), 400
@@ -594,8 +598,8 @@ def start_login(service):
     try:
         # Start de login functie in een aparte thread (niet-blocking)
         login_func = login_functions[service]
-        thread = threading.Thread(target=login_func, daemon=True)
-        thread.start()
+        thread = threading.Thread(target=login_func, daemon=True, name=f"login-{service}")
+        start_thread(thread)
         
         return jsonify({"success": True, "message": f"{service} login gestart"})
     except Exception as e:
@@ -986,5 +990,11 @@ if __name__ == "__main__":
     debug_mode = os.environ.get("FLASK_DEBUG", "False").lower() == "true"
     port = int(os.environ.get("FLASK_PORT", "5000"))
 
-    # Start de Flask server
-    app.run(host="127.0.0.1", port=port, debug=debug_mode)
+    server = make_server("127.0.0.1", port, app)
+    server.timeout = 0.5
+    try:
+        while not shutdown_event.is_set():
+            server.handle_request()
+    finally:
+        server.server_close()
+        shutdown_application()

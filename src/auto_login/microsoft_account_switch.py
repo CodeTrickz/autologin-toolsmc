@@ -7,6 +7,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
+from src.core.shutdown import shutdown_event
 
 
 def _click_first_clickable(driver, selectors, timeout=4) -> bool:
@@ -51,7 +52,7 @@ def get_microsoft_email_input(driver, timeout: float = 1.2):
         (By.ID, "i0116"),
         (By.CSS_SELECTOR, "input[type='email']"),
     ]
-    while time.time() < deadline:
+    while time.time() < deadline and not shutdown_event.is_set():
         el = _find_visible(driver, selectors)
         if el:
             return el
@@ -73,7 +74,7 @@ def prepare_microsoft_login_for_email(driver, desired_email: str, timeout: int =
         (By.CSS_SELECTOR, "input[type='email']"),
     ]
 
-    while time.time() < deadline:
+    while time.time() < deadline and not shutdown_event.is_set():
         # Als we op een logout bevestigingspagina zitten, terug naar start.
         try:
             url = (driver.current_url or "").lower()
@@ -142,4 +143,6 @@ def prepare_microsoft_login_for_email(driver, desired_email: str, timeout: int =
 
         time.sleep(poll)
 
+    if shutdown_event.is_set():
+        raise TimeoutException("Microsoft login afgebroken door applicatie shutdown.")
     raise TimeoutException("Microsoft loginveld (loginfmt) niet bereikt na account-switch.")
