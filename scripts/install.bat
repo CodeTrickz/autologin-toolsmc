@@ -56,8 +56,10 @@ if exist "%INSTALL_DIR%\SintMaartenCampusAutologin.exe" (
 )
 
 REM Stop draaiende applicatie vóór bestanden worden vervangen. Gebruikersdata blijft behouden.
-taskkill /F /IM SintMaartenCampusAutologin.exe >nul 2>&1
-timeout /t 2 /nobreak >nul
+taskkill /F /T /IM SintMaartenCampusAutologin.exe >nul 2>&1
+taskkill /F /T /IM chromedriver.exe >nul 2>&1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$tokens=@('%INSTALL_DIR%','%APPDATA_DIR%') | ForEach-Object { $_.ToLowerInvariant() }; Get-CimInstance Win32_Process | Where-Object { $_.Name -in @('chrome.exe','msedgewebview2.exe','chromedriver.exe') -and ($cmd=([string]$_.CommandLine).ToLowerInvariant()) -and ($tokens | Where-Object { $_ -and $cmd.Contains($_) }) } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }" >nul 2>&1
+timeout /t 3 /nobreak >nul
 
 REM Maak installatie directory
 if not exist "%INSTALL_DIR%" (
@@ -121,39 +123,14 @@ if exist "%START_SHORTCUT%" (
 REM Maak uninstall script (helper uit TEMP verwijdert programma-map na exit)
 echo.
 echo Maken van uninstall script...
-(
-echo @echo off
-echo setlocal enabledelayedexpansion
-echo set "INSTALL_DIR=%INSTALL_DIR%"
-echo set "APPDATA_DIR=%%LOCALAPPDATA%%\SintMaartenCampusAutologin"
-echo set "DESKTOP_LNK=%%USERPROFILE%%\Desktop\Sint Maarten Campus Autologin.lnk"
-echo set "STARTMENU_LNK=%%APPDATA%%\Microsoft\Windows\Start Menu\Programs\Sint Maarten Campus Autologin.lnk"
-echo.
-echo taskkill /F /IM SintMaartenCampusAutologin.exe ^>nul 2^>^&1
-echo timeout /t 2 /nobreak ^>nul
-echo del /F /Q "%%DESKTOP_LNK%%" ^>nul 2^>^&1
-echo del /F /Q "%%STARTMENU_LNK%%" ^>nul 2^>^&1
-echo echo.
-echo echo Lokale credentials en configuratie verwijderen?
-echo echo Map: %%APPDATA_DIR%%
-echo choice /C YN /N /D N /T 30 /M "Remove local credentials and configuration? [y/N] "
-echo if errorlevel 2 goto keepdata
-echo if exist "%%APPDATA_DIR%%" rd /S /Q "%%APPDATA_DIR%%"
-echo echo Gebruikersdata verwijderd.
-echo goto afterdata
-echo :keepdata
-echo echo Gebruikersdata bewaard.
-echo :afterdata
-echo.
-echo set "HELPER=%%TEMP%%\smca_uninstall_helper.bat"
-echo echo @echo off ^> "%%HELPER%%"
-echo echo timeout /t 1 /nobreak ^>nul ^>> "%%HELPER%%"
-echo echo rd /S /Q "!INSTALL_DIR!" ^>> "%%HELPER%%"
-echo echo del "%%HELPER%%" ^>> "%%HELPER%%"
-echo start /d "%%TEMP%%" /wait cmd /c "%%HELPER%%"
-echo echo Applicatie verwijderd.
-echo pause
-) > "%INSTALL_DIR%\uninstall.bat"
+if exist "%SCRIPT_DIR%Uninstall_SintMaartenCampusAutologin.bat" (
+    copy /Y "%SCRIPT_DIR%Uninstall_SintMaartenCampusAutologin.bat" "%INSTALL_DIR%\uninstall.bat" >nul
+) else (
+    echo @echo off> "%INSTALL_DIR%\uninstall.bat"
+    echo taskkill /F /T /IM SintMaartenCampusAutologin.exe ^>nul 2^>^&1>> "%INSTALL_DIR%\uninstall.bat"
+    echo taskkill /F /T /IM chromedriver.exe ^>nul 2^>^&1>> "%INSTALL_DIR%\uninstall.bat"
+    echo rd /S /Q "%INSTALL_DIR%">> "%INSTALL_DIR%\uninstall.bat"
+)
 
 echo.
 echo ========================================

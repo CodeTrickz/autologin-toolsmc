@@ -4,7 +4,7 @@
 [Setup]
 AppId={{7F6A6A2D-8A35-4DA8-B6F1-0A174011CAFE}
 AppName=Sint Maarten Campus Autologin Tool
-AppVersion=2.0.5-beta.3
+AppVersion=2.0.5-beta.4
 AppPublisher=Sint Maarten Campus
 AppPublisherURL=
 DefaultDirName={pf}\SintMaartenCampusAutologin
@@ -59,8 +59,17 @@ procedure StopRunningApplication;
 var
   ResultCode: Integer;
 begin
-  Exec(ExpandConstant('{cmd}'), '/C taskkill /F /IM SintMaartenCampusAutologin.exe >nul 2>nul', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  Sleep(1500);
+  Exec(ExpandConstant('{cmd}'), '/C taskkill /F /T /IM SintMaartenCampusAutologin.exe >nul 2>nul', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Exec(ExpandConstant('{cmd}'), '/C taskkill /F /T /IM chromedriver.exe >nul 2>nul', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Exec(
+    'powershell.exe',
+    '-NoProfile -ExecutionPolicy Bypass -Command "$tokens=@(''' + ExpandConstant('{app}') + ''',''' + ExpandConstant('{localappdata}\SintMaartenCampusAutologin') + ''') | ForEach-Object { $_.ToLowerInvariant() }; Get-CimInstance Win32_Process | Where-Object { $_.Name -in @(''chrome.exe'',''msedgewebview2.exe'',''chromedriver.exe'') -and ($cmd=([string]$_.CommandLine).ToLowerInvariant()) -and ($tokens | Where-Object { $_ -and $cmd.Contains($_) }) } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"',
+    '',
+    SW_HIDE,
+    ewWaitUntilTerminated,
+    ResultCode
+  );
+  Sleep(3000);
 end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;
@@ -101,7 +110,7 @@ end;
 procedure InitializeWizard;
 begin
   WizardForm.LicenseLabel1.Caption := 'Sint Maarten Campus Autologin Tool' + #13#10 + 
-    'Versie 2.0.5-beta.3' + #13#10 + #13#10 +
+    'Versie 2.0.5-beta.4' + #13#10 + #13#10 +
     'Deze tool helpt bij automatische logins voor:' + #13#10 +
     '- Smartschool' + #13#10 +
     '- Microsoft Admin' + #13#10 +

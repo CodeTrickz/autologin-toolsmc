@@ -21,10 +21,13 @@ set "INSTALL_DIR=%ProgramFiles%\SintMaartenCampusAutologin"
 set "APPDATA_DIR=%LOCALAPPDATA%\SintMaartenCampusAutologin"
 set "DESKTOP_LNK=%USERPROFILE%\Desktop\Sint Maarten Campus Autologin.lnk"
 set "STARTMENU_LNK=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Sint Maarten Campus Autologin.lnk"
+set "HELPER=%TEMP%\smca_uninstall_helper.bat"
 
 echo Stoppen van de applicatie...
-taskkill /F /IM SintMaartenCampusAutologin.exe >nul 2>&1
-timeout /t 2 /nobreak >nul
+taskkill /F /T /IM SintMaartenCampusAutologin.exe >nul 2>&1
+taskkill /F /T /IM chromedriver.exe >nul 2>&1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$tokens=@('%INSTALL_DIR%','%APPDATA_DIR%') | ForEach-Object { $_.ToLowerInvariant() }; Get-CimInstance Win32_Process | Where-Object { $_.Name -in @('chrome.exe','msedgewebview2.exe','chromedriver.exe') -and ($cmd=([string]$_.CommandLine).ToLowerInvariant()) -and ($tokens | Where-Object { $_ -and $cmd.Contains($_) }) } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }" >nul 2>&1
+timeout /t 3 /nobreak >nul
 
 echo Verwijderen van snelkoppelingen...
 if exist "%DESKTOP_LNK%" del /F /Q "%DESKTOP_LNK%" && echo   - Bureaublad snelkoppeling verwijderd.
@@ -52,7 +55,13 @@ echo Gebruikersdata bewaard.
 
 echo Verwijderen van programma-map...
 if exist "%INSTALL_DIR%" (
-    rd /S /Q "%INSTALL_DIR%" 2>nul
+    cd /d "%TEMP%" >nul 2>&1
+    > "%HELPER%" echo @echo off
+    >> "%HELPER%" echo timeout /t 2 /nobreak ^>nul
+    >> "%HELPER%" echo rd /S /Q "%INSTALL_DIR%" ^>nul 2^>^&1
+    >> "%HELPER%" echo del /F /Q "%HELPER%" ^>nul 2^>^&1
+    start "" /D "%TEMP%" cmd /c "%HELPER%"
+    timeout /t 4 /nobreak >nul
     if exist "%INSTALL_DIR%" (
         echo   - Kon programma-map niet verwijderen (mogelijk in gebruik).
         echo   - Sluit alle vensters van de applicatie en voer dit script opnieuw uit.

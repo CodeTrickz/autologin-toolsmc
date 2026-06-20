@@ -576,11 +576,16 @@ Deze tool is ontwikkeld voor intern gebruik bij Sint-Maarten Campus.
 
 ---
 
-**Versie:** 2.0.5-beta.3  
+**Versie:** 2.0.5-beta.4  
 **Laatste update:** Juni 2026  
 **Auteur:** Wesley Van Hoof
 
 ### Changelog
+
+#### Versie 2.0.5-beta.4 (Juni 2026)
+
+- ✅ **Procescleanup bij update/uninstall:** app, ChromeDriver en tool-specifieke Chrome/WebView2 processen worden harder gestopt zodat oude installatiemappen niet gelockt blijven tot na een reboot.
+- ✅ **Shutdown cleanup:** bij afsluiten ruimt de app child-processen op die anders RAM/CPU kunnen blijven gebruiken.
 
 #### Versie 2.0.5-beta.3 (Juni 2026)
 

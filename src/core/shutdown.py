@@ -8,6 +8,8 @@ import signal
 import threading
 from collections.abc import Callable
 
+from src.core.process_cleanup import kill_child_process_tree
+
 shutdown_event = threading.Event()
 
 _lock = threading.RLock()
@@ -102,6 +104,7 @@ def shutdown_application() -> None:
                 pass
 
     join_threads()
+    kill_child_process_tree()
 
 
 register_shutdown_handler()

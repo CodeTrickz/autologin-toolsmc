@@ -12,6 +12,7 @@ hidden_imports = [
     'src.auto_login.auto_rdp_sessions', 'src.auto_login.auto_ssh_connect',
     'src.core.credentials_manager', 'src.core.security_utils', 'src.core.clean_credentials',
     'src.core.migrate_key_file', 'src.core.security_test', 'src.core.clean_servers',
+    'src.core.process_cleanup',
 ]
 hidden_imports += collect_submodules('selenium')
 hidden_imports += collect_submodules('webdriver_manager')
