@@ -15,7 +15,7 @@ if str(SCRIPTS_DIR) not in sys.path:
 
 from src.core.credentials_manager import get_credential, get_data_dir
 from src.auto_login.browser_session import open_url_for_service
-from src.auto_login.input_utils import clear_and_human_type
+from src.auto_login.input_utils import clear_and_human_type, clear_and_type_verified
 from src.auto_login.microsoft_account_switch import get_microsoft_email_input, prepare_microsoft_login_for_email
 from src.auto_login.microsoft_site_data import clear_microsoft_site_data
 
@@ -112,20 +112,80 @@ def _find_first_present(wait: WebDriverWait, selectors):
     raise TimeoutException("Geen selector opgegeven.")
 
 
+def _find_first_clickable(driver, selectors, *, timeout: int = 30):
+    last_error = None
+    for by, selector in selectors:
+        try:
+            return WebDriverWait(driver, timeout).until(EC.element_to_be_clickable((by, selector)))
+        except Exception as exc:
+            last_error = exc
+    if last_error:
+        raise last_error
+    raise TimeoutException("Geen selector opgegeven.")
+
+
+def _click_google_next(driver, selectors, *, event: str, timeout: int = 30) -> None:
+    button = _find_first_clickable(driver, selectors, timeout=timeout)
+    try:
+        button.click()
+    except Exception:
+        driver.execute_script("arguments[0].click();", button)
+    _log_flow(event)
+
+
+def _has_google_password_input(driver) -> bool:
+    selectors = [
+        (By.CSS_SELECTOR, 'input[type="password"]'),
+        (By.NAME, "Passwd"),
+        (By.CSS_SELECTOR, 'input[autocomplete="current-password"]'),
+    ]
+    for by, selector in selectors:
+        try:
+            elements = driver.find_elements(by, selector)
+            if any(el.is_displayed() and el.is_enabled() for el in elements):
+                return True
+        except Exception:
+            continue
+    return False
+
+
 def _run_google_flow(driver, wait: WebDriverWait, email: str, password: str) -> str:
     _log_flow("FLOW_GOOGLE")
-    email_input = _find_first_present(
-        wait,
-        [
-            (By.ID, "identifierId"),
-            (By.NAME, "identifier"),
-            (By.XPATH, "//input[@type='email']"),
-        ],
-    )
-    clear_and_human_type(email_input, email)
+    if "accounts.google.com" not in (driver.current_url or "").lower():
+        return _wait_for_flow(driver, timeout=10)
 
-    next_btn = wait.until(EC.element_to_be_clickable((By.ID, "identifierNext")))
-    next_btn.click()
+    try:
+        email_input = _find_first_clickable(
+            driver,
+            [
+                (By.CSS_SELECTOR, 'input[type="email"]'),
+                (By.CSS_SELECTOR, "input#identifierId"),
+                (By.CSS_SELECTOR, 'input[name="identifier"]'),
+                (By.CSS_SELECTOR, 'input[autocomplete="username"]'),
+            ],
+            timeout=30,
+        )
+    except TimeoutException:
+        return "manual" if _manual_intervention_detected(driver) else "pending"
+
+    _log_flow("GOOGLE_EMAIL_FIELD_FOUND")
+    clear_and_type_verified(driver, email_input, email)
+    _log_flow("GOOGLE_EMAIL_FILLED")
+
+    try:
+        _click_google_next(
+            driver,
+            [
+                (By.CSS_SELECTOR, "#identifierNext button"),
+                (By.CSS_SELECTOR, "div#identifierNext"),
+                (By.XPATH, "//button[.//span[normalize-space()='Next'] or normalize-space()='Next']"),
+                (By.XPATH, "//span[text()='Next']/ancestor::button"),
+            ],
+            event="GOOGLE_IDENTIFIER_NEXT_CLICKED",
+            timeout=30,
+        )
+    except TimeoutException:
+        return "manual" if _manual_intervention_detected(driver) else "pending"
 
     try:
         next_step = WebDriverWait(driver, 30).until(
@@ -137,7 +197,7 @@ def _run_google_flow(driver, wait: WebDriverWait, email: str, password: str) -> 
                 else "manual"
                 if _manual_intervention_detected(d)
                 else "password"
-                if d.find_elements(By.NAME, "Passwd")
+                if _has_google_password_input(d)
                 else False
             )
         )
@@ -147,11 +207,36 @@ def _run_google_flow(driver, wait: WebDriverWait, email: str, password: str) -> 
     if next_step != "password":
         return next_step
 
-    password_input = wait.until(EC.element_to_be_clickable((By.NAME, "Passwd")))
-    clear_and_human_type(password_input, password)
+    try:
+        password_input = _find_first_clickable(
+            driver,
+            [
+                (By.CSS_SELECTOR, 'input[type="password"]'),
+                (By.CSS_SELECTOR, 'input[name="Passwd"]'),
+                (By.CSS_SELECTOR, 'input[autocomplete="current-password"]'),
+            ],
+            timeout=30,
+        )
+    except TimeoutException:
+        return "manual" if _manual_intervention_detected(driver) else "pending"
 
-    password_next = wait.until(EC.element_to_be_clickable((By.ID, "passwordNext")))
-    password_next.click()
+    _log_flow("GOOGLE_PASSWORD_FIELD_FOUND")
+    clear_and_type_verified(driver, password_input, password)
+    _log_flow("GOOGLE_PASSWORD_FILLED")
+
+    try:
+        _click_google_next(
+            driver,
+            [
+                (By.CSS_SELECTOR, "#passwordNext button"),
+                (By.CSS_SELECTOR, "div#passwordNext"),
+                (By.XPATH, "//span[text()='Next']/ancestor::button"),
+            ],
+            event="GOOGLE_PASSWORD_NEXT_CLICKED",
+            timeout=30,
+        )
+    except TimeoutException:
+        return "manual" if _manual_intervention_detected(driver) else "pending"
 
     try:
         return WebDriverWait(driver, 60).until(

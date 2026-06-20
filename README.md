@@ -576,11 +576,15 @@ Deze tool is ontwikkeld voor intern gebruik bij Sint-Maarten Campus.
 
 ---
 
-**Versie:** 2.0.5-beta.1  
+**Versie:** 2.0.5-beta.2  
 **Laatste update:** Juni 2026  
 **Auteur:** Wesley Van Hoof
 
 ### Changelog
+
+#### Versie 2.0.5-beta.2 (Juni 2026)
+
+- ✅ **Google Admin input fix:** e-mail en wachtwoord worden nu gecontroleerd ingevuld en krijgen een fallback via browser input-events wanneer Google de normale Selenium-invoer negeert.
 
 #### Versie 2.0.5-beta.1 (Juni 2026)
 - ✅ **New SessionManager**
