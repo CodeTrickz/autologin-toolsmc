@@ -16,7 +16,7 @@ if str(SCRIPTS_DIR) not in sys.path:
 
 from src.core.credentials_manager import get_credential, get_data_dir
 from src.auto_login.browser_session import open_url_for_service
-from src.auto_login.input_utils import clear_and_human_type
+from src.auto_login.input_utils import clear_and_type_verified
 from src.auto_login.microsoft_account_switch import get_microsoft_email_input, prepare_microsoft_login_for_email
 from src.auto_login.microsoft_site_data import clear_microsoft_site_data
 
@@ -100,8 +100,8 @@ def _try_direct_smartschool_login(driver, wait: WebDriverWait, username: str, pa
     except TimeoutException:
         return False
 
-    clear_and_human_type(username_input, username)
-    clear_and_human_type(pwd_input, password)
+    clear_and_type_verified(driver, username_input, username)
+    clear_and_type_verified(driver, pwd_input, password)
 
     submit_selectors = [
         (By.CSS_SELECTOR, "input[type='submit']"),
@@ -154,13 +154,13 @@ def _try_smartschool_microsoft_login(driver, wait: WebDriverWait, account_email:
             continue
     if not email_input:
         return False
-    clear_and_human_type(email_input, account_email)
+    clear_and_type_verified(driver, email_input, account_email)
 
     next_btn = wait.until(EC.element_to_be_clickable((By.ID, "idSIButton9")))
     next_btn.click()
 
     password_input = wait.until(EC.element_to_be_clickable((By.NAME, "passwd")))
-    clear_and_human_type(password_input, password)
+    clear_and_type_verified(driver, password_input, password)
 
     signin_btn = wait.until(EC.element_to_be_clickable((By.ID, "idSIButton9")))
     signin_btn.click()

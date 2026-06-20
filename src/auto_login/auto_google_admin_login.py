@@ -15,7 +15,7 @@ if str(SCRIPTS_DIR) not in sys.path:
 
 from src.core.credentials_manager import get_credential, get_data_dir
 from src.auto_login.browser_session import open_url_for_service
-from src.auto_login.input_utils import clear_and_human_type, clear_and_type_verified
+from src.auto_login.input_utils import clear_and_type_verified
 from src.auto_login.microsoft_account_switch import get_microsoft_email_input, prepare_microsoft_login_for_email
 from src.auto_login.microsoft_site_data import clear_microsoft_site_data
 
@@ -272,7 +272,7 @@ def _run_microsoft_flow(driver, wait: WebDriverWait, email: str, password: str) 
     )
 
     if (email_input.get_attribute("value") or "").strip() == "":
-        clear_and_human_type(email_input, email)
+        clear_and_type_verified(driver, email_input, email)
 
     next_btn = wait.until(EC.element_to_be_clickable((By.ID, "idSIButton9")))
     next_btn.click()
@@ -285,7 +285,7 @@ def _run_microsoft_flow(driver, wait: WebDriverWait, email: str, password: str) 
             return
         raise
 
-    clear_and_human_type(password_input, password)
+    clear_and_type_verified(driver, password_input, password)
 
     signin_btn = wait.until(EC.element_to_be_clickable((By.ID, "idSIButton9")))
     signin_btn.click()

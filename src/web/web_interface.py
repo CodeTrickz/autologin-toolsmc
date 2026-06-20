@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import html
+import logging
 import threading
 import secrets
 from pathlib import Path
@@ -54,7 +55,7 @@ TEMPLATES_DIR = SCRIPTS_DIR / "templates"
 app = Flask(__name__, template_folder=str(TEMPLATES_DIR))
 
 # Applicatieversie (één plek; ook zichtbaar in webinterface en API)
-APP_VERSION = "2.0.5-beta.2"
+APP_VERSION = "2.0.5-beta.3"
 DATA_DIR = get_data_dir()
 RDP_SERVERS_FILE = DATA_DIR / "rdp_servers.json"
 SSH_SERVERS_FILE = DATA_DIR / "ssh_servers.json"
@@ -97,6 +98,7 @@ def get_flask_secret_key() -> str:
 
 
 app.secret_key = get_flask_secret_key()
+logger = logging.getLogger(__name__)
 
 
 @app.context_processor
@@ -598,7 +600,15 @@ def start_login(service):
     try:
         # Start de login functie in een aparte thread (niet-blocking)
         login_func = login_functions[service]
-        thread = threading.Thread(target=login_func, daemon=True, name=f"login-{service}")
+
+        def _run_login_with_logging():
+            try:
+                login_func()
+            except Exception:
+                logger.exception("Login voor %s is mislukt", service)
+                print(f"LOGIN_FAILED {service}")
+
+        thread = threading.Thread(target=_run_login_with_logging, daemon=True, name=f"login-{service}")
         start_thread(thread)
         
         return jsonify({"success": True, "message": f"{service} login gestart"})

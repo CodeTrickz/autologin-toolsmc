@@ -576,11 +576,17 @@ Deze tool is ontwikkeld voor intern gebruik bij Sint-Maarten Campus.
 
 ---
 
-**Versie:** 2.0.5-beta.2  
+**Versie:** 2.0.5-beta.3  
 **Laatste update:** Juni 2026  
 **Auteur:** Wesley Van Hoof
 
 ### Changelog
+
+#### Versie 2.0.5-beta.3 (Juni 2026)
+
+- ✅ **Auto-login regressie hersteld:** adminportalen en Smartschool username-login gebruiken opnieuw verse geïsoleerde Chrome-sessies in plaats van één hergebruikte incognito-sessie.
+- ✅ **Stabielere invoer:** Smartschool en Microsoft-adminflows controleren nu ook of e-mail, gebruikersnaam en wachtwoord echt in het veld staan.
+- ✅ **Betere foutdiagnose:** login-thread fouten worden gelogd in plaats van stil te verdwijnen.
 
 #### Versie 2.0.5-beta.2 (Juni 2026)
 

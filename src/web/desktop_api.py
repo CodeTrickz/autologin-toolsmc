@@ -4,6 +4,7 @@ Wordt via pywebview js_api aan de frontend geëxposeerd.
 Alle methodes retourneren dezelfde structuur als de Flask API (dict).
 """
 import json
+import logging
 import sys
 import threading
 from pathlib import Path
@@ -40,6 +41,8 @@ from src.core.security_utils import (
     preserve_existing_secret,
 )
 from src.core.shutdown import shutdown_event, start_thread
+
+logger = logging.getLogger(__name__)
 
 
 class DesktopAPI:
@@ -328,7 +331,16 @@ class DesktopAPI:
                 "google_admin": login_google_admin,
                 "easy4u": login_easy4u,
             }
-            thread = threading.Thread(target=funcs[service], daemon=True, name=f"login-{service}")
+            login_func = funcs[service]
+
+            def _run_login_with_logging():
+                try:
+                    login_func()
+                except Exception:
+                    logger.exception("Login voor %s is mislukt", service)
+                    print(f"LOGIN_FAILED {service}")
+
+            thread = threading.Thread(target=_run_login_with_logging, daemon=True, name=f"login-{service}")
             start_thread(thread)
             return {"success": True, "message": f"{service} login gestart"}
         except Exception as e:

@@ -18,7 +18,7 @@ if str(SCRIPTS_DIR) not in sys.path:
 from src.core.credentials_manager import get_credential, get_data_dir
 from src.core.security_utils import canonical_service_url
 from src.auto_login.browser_session import open_url_for_service
-from src.auto_login.input_utils import clear_and_human_type
+from src.auto_login.input_utils import clear_and_type_verified
 from src.auto_login.microsoft_account_switch import get_microsoft_email_input, prepare_microsoft_login_for_email
 from src.auto_login.microsoft_site_data import clear_microsoft_site_data
 
@@ -89,7 +89,7 @@ def login_microsoft_admin() -> None:
             raise RuntimeError("Kon Microsoft e-mail veld niet vinden (loginfmt/i0116).")
         # Als fast path al getypt heeft, laten we de value staan.
         if (email_input.get_attribute("value") or "").strip() == "":
-            clear_and_human_type(email_input, ms_email)
+            clear_and_type_verified(driver, email_input, ms_email)
 
         next_btn = wait.until(
             EC.element_to_be_clickable((By.ID, "idSIButton9"))
@@ -100,7 +100,7 @@ def login_microsoft_admin() -> None:
         password_input = wait.until(
             EC.element_to_be_clickable((By.NAME, "passwd"))
         )
-        clear_and_human_type(password_input, ms_password)
+        clear_and_type_verified(driver, password_input, ms_password)
 
         signin_btn = wait.until(
             EC.element_to_be_clickable((By.ID, "idSIButton9"))

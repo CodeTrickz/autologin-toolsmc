@@ -1,20 +1,18 @@
 """
-Selenium browser session management for all auto-login scripts.
+Selenium browser session management for auto-login scripts.
 
-The application owns at most two Chrome instances during one run:
-- normal_driver: regular Chrome profile
-- incognito_driver: Chrome started with --incognito
-
-Every login opens a new tab in the matching browser. Existing browsers are
-reused while they respond, and are recreated only after the user has closed
-that browser.
+Normal logins reuse one Chrome session and open new tabs. Hardened admin
+portals and account-sensitive flows use isolated Chrome sessions so cookies,
+incognito state, and locked profiles cannot poison the next login attempt.
 """
 from __future__ import annotations
 
+import hashlib
 import logging
 import os
 import threading
 from pathlib import Path
+from uuid import uuid4
 
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
@@ -26,6 +24,9 @@ from src.core.shutdown import register_shutdown_callback
 from src.auto_login import browser_cleanup  # noqa: F401  (registers central shutdown cleanup)
 
 logger = logging.getLogger(__name__)
+
+_DRIVER_LOCK = threading.Lock()
+_SHARED_DRIVER: webdriver.Chrome | None = None
 
 _HARDENED_ADMIN_SERVICES = {
     "microsoft_admin",
@@ -53,14 +54,32 @@ def _default_user_data_dir() -> Path:
     return default_profile_dir
 
 
-def _incognito_user_data_dir() -> Path:
+def _isolated_user_data_dir(*, incognito: bool) -> Path:
     data_dir = Path(get_data_dir())
-    incognito_profile_dir = data_dir / "chrome_user_data_incognito"
-    incognito_profile_dir.mkdir(parents=True, exist_ok=True)
-    return incognito_profile_dir
+    base = data_dir / "chrome_user_data_isolated" / ("incognito" if incognito else "profile")
+    base.mkdir(parents=True, exist_ok=True)
+    path = base / uuid4().hex
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 
 
-def _build_options(*, incognito: bool = False) -> webdriver.ChromeOptions:
+def _account_profile_dir(service: str, account_id: str) -> Path:
+    data_dir = Path(get_data_dir())
+    base = data_dir / "chrome_profiles" / service
+    base.mkdir(parents=True, exist_ok=True)
+    key = (account_id or "").strip().lower().encode("utf-8")
+    digest = hashlib.sha256(key).hexdigest()[:16]
+    path = base / digest
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def _build_options(
+    *,
+    incognito: bool = False,
+    user_data_dir: str | None = None,
+    profile_directory: str | None = None,
+) -> webdriver.ChromeOptions:
     options = webdriver.ChromeOptions()
     options.add_argument("--start-maximized")
     options.add_argument("--disable-blink-features=AutomationControlled")
@@ -83,17 +102,59 @@ def _build_options(*, incognito: bool = False) -> webdriver.ChromeOptions:
     if _is_truthy(os.environ.get("AUTO_LOGIN_DETACH")):
         options.add_experimental_option("detach", True)
 
-    if incognito:
-        user_data_dir = str(_incognito_user_data_dir())
-        options.add_argument("--incognito")
-    else:
+    if user_data_dir is None:
         user_data_dir = (os.environ.get("AUTO_LOGIN_USER_DATA_DIR") or "").strip() or str(_default_user_data_dir())
-        profile_directory = (os.environ.get("AUTO_LOGIN_PROFILE_DIRECTORY") or "").strip()
-        if profile_directory:
-            options.add_argument(f"--profile-directory={profile_directory}")
-
     options.add_argument(f"--user-data-dir={user_data_dir}")
+
+    if profile_directory is None:
+        profile_directory = (os.environ.get("AUTO_LOGIN_PROFILE_DIRECTORY") or "").strip()
+    if profile_directory:
+        options.add_argument(f"--profile-directory={profile_directory}")
+
+    if incognito:
+        options.add_argument("--incognito")
+
     return options
+
+
+def _driver_is_alive(driver: webdriver.Chrome | None) -> bool:
+    if driver is None:
+        return False
+    try:
+        handles = driver.window_handles
+        if not handles:
+            return False
+        try:
+            current_handle = driver.current_window_handle
+        except Exception:
+            current_handle = None
+        if current_handle not in handles:
+            driver.switch_to.window(handles[-1])
+        _ = driver.current_url
+        return True
+    except Exception:
+        return False
+
+
+def _new_driver(*, incognito: bool = False, user_data_dir: str | None = None, profile_directory: str | None = None) -> webdriver.Chrome:
+    service = ChromeService(executable_path=ChromeDriverManager().install())
+    return webdriver.Chrome(
+        options=_build_options(
+            incognito=incognito,
+            user_data_dir=user_data_dir,
+            profile_directory=profile_directory,
+        ),
+        service=service,
+    )
+
+
+def _open_new_tab(driver: webdriver.Chrome, url: str) -> None:
+    try:
+        driver.switch_to.new_window("tab")
+    except Exception:
+        driver.execute_script("window.open('about:blank', '_blank');")
+        driver.switch_to.window(driver.window_handles[-1])
+    driver.get(url)
 
 
 def _log_session_event(event: str, session_type: str) -> None:
@@ -102,116 +163,7 @@ def _log_session_event(event: str, session_type: str) -> None:
     print(message)
 
 
-class SessionManager:
-    """Owns the only Selenium Chrome instances started by this application."""
-
-    def __init__(self) -> None:
-        self.normal_driver: webdriver.Chrome | None = None
-        self.incognito_driver: webdriver.Chrome | None = None
-        self._lock = threading.Lock()
-
-    def open_login_tab(self, url: str, *, incognito: bool = False) -> webdriver.Chrome:
-        """
-        Open a login URL in a new tab of the matching reusable browser session.
-        """
-        with self._lock:
-            driver = self._get_or_create_driver(incognito=incognito)
-            self._open_new_tab(driver, url, incognito=incognito)
-            return driver
-
-    def get_driver(self, *, incognito: bool = False) -> webdriver.Chrome:
-        """Return the matching reusable driver, creating it when necessary."""
-        with self._lock:
-            return self._get_or_create_driver(incognito=incognito)
-
-    def quit_all(self) -> None:
-        """Quit both application-managed Chrome sessions."""
-        with self._lock:
-            drivers = [
-                ("normal", self.normal_driver),
-                ("incognito", self.incognito_driver),
-            ]
-            self.normal_driver = None
-            self.incognito_driver = None
-
-        for session_type, driver in drivers:
-            if driver is None:
-                continue
-            try:
-                driver.quit()
-                _log_session_event("SESSION_QUIT", session_type)
-            except Exception:
-                pass
-
-    def _get_or_create_driver(self, *, incognito: bool) -> webdriver.Chrome:
-        attr = "incognito_driver" if incognito else "normal_driver"
-        driver = getattr(self, attr)
-        session_type = self._session_type(incognito)
-
-        if self._driver_is_alive(driver):
-            _log_session_event("SESSION_REUSED", session_type)
-            return driver
-
-        service = ChromeService(executable_path=ChromeDriverManager().install())
-        try:
-            driver = webdriver.Chrome(options=_build_options(incognito=incognito), service=service)
-        except WebDriverException as e:
-            raise RuntimeError(
-                f"Kon Chrome-sessie niet starten ({session_type}; mogelijk profiel in gebruik). "
-                "Sluit Chrome-vensters die door de tool zijn geopend en probeer opnieuw."
-            ) from e
-
-        setattr(self, attr, driver)
-        _log_session_event("SESSION_CREATED", session_type)
-        return driver
-
-    def _driver_is_alive(self, driver: webdriver.Chrome | None) -> bool:
-        if driver is None:
-            return False
-        try:
-            handles = driver.window_handles
-            if not handles:
-                return False
-            try:
-                current_handle = driver.current_window_handle
-            except Exception:
-                current_handle = None
-            if current_handle not in handles:
-                driver.switch_to.window(handles[-1])
-            _ = driver.current_url
-            return True
-        except Exception:
-            return False
-
-    def _open_new_tab(self, driver: webdriver.Chrome, url: str, *, incognito: bool) -> None:
-        session_type = self._session_type(incognito)
-        try:
-            driver.switch_to.new_window("tab")
-        except Exception:
-            driver.execute_script("window.open('about:blank', '_blank');")
-            driver.switch_to.window(driver.window_handles[-1])
-
-        _log_session_event("NEW_TAB_CREATED", session_type)
-        driver.get(url)
-
-    @staticmethod
-    def _session_type(incognito: bool) -> str:
-        return "incognito" if incognito else "normal"
-
-
-session_manager = SessionManager()
-register_shutdown_callback("browser_sessions", session_manager.quit_all)
-
-
 def incognito_for_service(service: str) -> bool:
-    """
-    Determine whether a service should use the reusable incognito browser.
-
-    Admin portals keep their historical hardened behavior by using the single
-    incognito browser instead of creating temporary isolated browsers.
-    """
-    if service in _HARDENED_ADMIN_SERVICES:
-        return not _is_truthy(os.environ.get("AUTO_LOGIN_DISABLE_ADMIN_HARDENING"))
     if _is_truthy(os.environ.get("AUTO_LOGIN_INCOGNITO")):
         return True
     incognito = _parse_csv_set(os.environ.get("AUTO_LOGIN_INCOGNITO_SERVICES"))
@@ -223,37 +175,65 @@ def hardened_admin_session(service: str) -> bool:
 
 
 def get_shared_driver() -> webdriver.Chrome:
-    """Backward-compatible normal-session driver accessor."""
-    return session_manager.get_driver(incognito=False)
+    """Return the reusable normal Chrome driver, creating it if needed."""
+    global _SHARED_DRIVER
+    with _DRIVER_LOCK:
+        if _driver_is_alive(_SHARED_DRIVER):
+            _log_session_event("SESSION_REUSED", "normal")
+            return _SHARED_DRIVER
+
+        try:
+            _SHARED_DRIVER = _new_driver()
+        except WebDriverException as e:
+            raise RuntimeError(
+                "Kon gedeelde Chrome-sessie niet starten (mogelijk profiel in gebruik). "
+                "Sluit Chrome-vensters die door de tool zijn geopend en probeer opnieuw."
+            ) from e
+
+        _log_session_event("SESSION_CREATED", "normal")
+        return _SHARED_DRIVER
 
 
 def open_url_in_shared_session(url: str, *, new_tab: bool = True) -> webdriver.Chrome:
-    """Open URL in the reusable normal Chrome session."""
-    if new_tab:
-        return session_manager.open_login_tab(url, incognito=False)
-    driver = session_manager.get_driver(incognito=False)
-    driver.get(url)
+    """Open a URL in the reusable normal Chrome session."""
+    driver = get_shared_driver()
+    if new_tab and _driver_is_alive(driver):
+        try:
+            _open_new_tab(driver, url)
+        except Exception:
+            driver.get(url)
+    else:
+        driver.get(url)
     return driver
 
 
 def open_url_in_isolated_session(url: str, *, incognito: bool = False) -> webdriver.Chrome:
-    """
-    Backward-compatible helper.
-
-    The old implementation created a fresh browser. The new invariant allows
-    only one normal and one incognito browser, so this opens a new tab in the
-    matching reusable session.
-    """
-    return session_manager.open_login_tab(url, incognito=incognito)
+    """Open a URL in a fresh isolated Chrome instance."""
+    isolated_dir = _isolated_user_data_dir(incognito=incognito)
+    driver = _new_driver(incognito=incognito, user_data_dir=str(isolated_dir), profile_directory="")
+    _log_session_event("SESSION_CREATED", "isolated-incognito" if incognito else "isolated")
+    driver.get(url)
+    return driver
 
 
 def open_url_in_account_session(service: str, url: str, account_id: str, *, incognito: bool = False) -> webdriver.Chrome:
-    """
-    Backward-compatible helper for account-specific callers.
+    """Open a URL in a stable isolated Chrome profile for one account."""
+    profile_dir = _account_profile_dir(service, account_id)
+    driver = _new_driver(incognito=incognito, user_data_dir=str(profile_dir), profile_directory="")
+    _log_session_event("SESSION_CREATED", f"account-{service}")
+    driver.get(url)
+    return driver
 
-    Per-account Chrome instances are intentionally no longer created.
-    """
-    return session_manager.open_login_tab(url, incognito=incognito)
+
+def _requires_account_isolation(service: str) -> bool:
+    return service in {
+        "smartschool",
+        "smartschool_admin",
+        "microsoft_admin",
+        "google_admin",
+        "intune_admin",
+        "azure_admin",
+    }
 
 
 def open_url_for_service(
@@ -265,15 +245,42 @@ def open_url_for_service(
     incognito: bool | None = None,
 ) -> webdriver.Chrome:
     """
-    Open URL in exactly one of the two reusable sessions.
+    Open a URL according to the service strategy.
 
-    Service modules should use this function instead of constructing Selenium
-    drivers themselves. The actual Chrome launch point remains SessionManager.
+    Admin portals default to fresh isolated incognito sessions. Account-sensitive
+    services get per-account profiles when not using explicit incognito.
     """
-    use_incognito = incognito_for_service(service) if incognito is None else incognito
-    if new_tab:
-        return session_manager.open_login_tab(url, incognito=use_incognito)
+    global _SHARED_DRIVER
 
-    driver = session_manager.get_driver(incognito=use_incognito)
-    driver.get(url)
-    return driver
+    if hardened_admin_session(service):
+        return open_url_in_isolated_session(url, incognito=True)
+
+    use_incognito = incognito_for_service(service) if incognito is None else incognito
+    if use_incognito:
+        return open_url_in_isolated_session(url, incognito=True)
+
+    if account_id and _requires_account_isolation(service):
+        return open_url_in_account_session(service, url, account_id, incognito=False)
+
+    try:
+        return open_url_in_shared_session(url, new_tab=new_tab)
+    except Exception:
+        with _DRIVER_LOCK:
+            _SHARED_DRIVER = None
+        return open_url_in_shared_session(url, new_tab=new_tab)
+
+
+def quit_all_sessions() -> None:
+    global _SHARED_DRIVER
+    with _DRIVER_LOCK:
+        driver = _SHARED_DRIVER
+        _SHARED_DRIVER = None
+    if driver is not None:
+        try:
+            driver.quit()
+            _log_session_event("SESSION_QUIT", "normal")
+        except Exception:
+            pass
+
+
+register_shutdown_callback("browser_sessions", quit_all_sessions)
